@@ -46,6 +46,15 @@ button.ghost:active{transform:translateY(2px);}
 .resultBox{display:flex;flex-direction:column;align-items:center;gap:14px;background:rgba(10,15,32,.4);border:1.5px solid rgba(212,169,60,.4);border-radius:20px;padding:26px 34px;}
 .row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
 .small{font-size:12px;opacity:.6;letter-spacing:.1em;}
+.shopgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px;width:min(88vw,380px);max-height:52vh;overflow-y:auto;padding:4px 2px;}
+.skincard{background:rgba(242,232,213,.06);border:1.5px solid rgba(212,169,60,.35);border-radius:16px;padding:12px 8px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.skincard.equipped{border-color:#d4a93c;box-shadow:0 0 0 2px rgba(212,169,60,.5) inset;}
+.skincard img{width:62px;height:62px;border-radius:50%;box-shadow:0 4px 14px rgba(0,0,0,.45);}
+.skincard .nm{font-size:13px;letter-spacing:.08em;}
+.skincard .cost{font-size:12px;color:var(--kin);display:flex;align-items:center;gap:4px;}
+.skincard .cost .koban{width:10px;height:14px;}
+.skincard button{padding:7px 16px;font-size:13px;letter-spacing:.06em;box-shadow:none;}
+.skincard button.ghost{padding:6.5px 15px;}
 #tip{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;font-size:13px;opacity:0;letter-spacing:.15em;z-index:10;pointer-events:none;transition:opacity .4s;text-shadow:0 1px 6px rgba(0,0,0,.8);}
 </style>
 </head>
@@ -59,21 +68,31 @@ button.ghost:active{transform:translateY(2px);}
   <button id="pauseBtn">❚❚</button>
 </div>
 <div id="toast"></div>
-<div id="tip">← みぎ・ひだり タップで いどう →</div>
+<div id="tip">← ゆびを スライドして いどう →</div>
 
 <div id="scrTitle" class="screen">
   <img id="temariImg" class="temari-img" alt="てまり">
   <h1 class="title">てまりころりん</h1>
   <div class="sub">ゆびで まりを ころがして ゴールへ</div>
   <button id="btnStart">はじめる</button>
-  <div class="small">v3</div>
+  <div class="small">v5</div>
 </div>
 
 <div id="scrLevels" class="screen hidden">
   <h1 class="title" style="font-size:clamp(24px,7vw,36px)">だんをえらぶ</h1>
   <div class="lvgrid" id="lvgrid"></div>
   <div class="pill" style="background:rgba(10,15,32,.55);border-radius:999px;padding:6px 16px;display:flex;gap:8px;align-items:center;"><span class="koban"></span><span id="totalCoins">0</span><span class="small">あつめた小判</span></div>
-  <button class="ghost" id="btnBackTitle">もどる</button>
+  <div class="row">
+    <button class="ghost" id="btnShop">まりや</button>
+    <button class="ghost" id="btnBackTitle">もどる</button>
+  </div>
+</div>
+
+<div id="scrShop" class="screen hidden">
+  <h1 class="title" style="font-size:clamp(24px,7vw,36px)">まりや</h1>
+  <div class="pill" style="background:rgba(10,15,32,.55);border-radius:999px;padding:6px 16px;display:flex;gap:8px;align-items:center;"><span class="koban"></span><span id="shopCoins">0</span><span class="small">もちだま</span></div>
+  <div class="shopgrid" id="shopgrid"></div>
+  <button class="ghost" id="btnShopBack">もどる</button>
 </div>
 
 <div id="scrPause" class="screen hidden" style="background:rgba(10,15,32,.72);">
@@ -243,18 +262,17 @@ function sphereMesh(st,sl){
 const CUBE=cubeMesh();
 const SPHERE=sphereMesh(16,24);
 
-/* ===== temari texture ===== */
-function drawTemari(ctx,S){
-  ctx.fillStyle='#a83232';ctx.fillRect(0,0,S,S);
+/* ===== temari texture (palette-driven, so it can be reused per ball skin) ===== */
+function drawTemari(ctx,S,pal){
+  ctx.fillStyle=pal.base;ctx.fillRect(0,0,S,S);
   const g=ctx.createLinearGradient(0,0,0,S);
-  g.addColorStop(0,'rgba(60,20,20,0.55)');g.addColorStop(0.25,'rgba(0,0,0,0)');
-  g.addColorStop(0.75,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(60,20,20,0.55)');
+  g.addColorStop(0,'rgba(0,0,0,0.38)');g.addColorStop(0.25,'rgba(0,0,0,0)');
+  g.addColorStop(0.75,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,0.38)');
   ctx.fillStyle=g;ctx.fillRect(0,0,S,S);
-  // center obi band (indigo with gold borders)
-  ctx.fillStyle='#233a63';ctx.fillRect(0,S*0.42,S,S*0.16);
-  ctx.fillStyle='#d4a93c';
+  // center obi band
+  ctx.fillStyle=pal.obi;ctx.fillRect(0,S*0.42,S,S*0.16);
+  ctx.fillStyle=pal.obiEdge;
   ctx.fillRect(0,S*0.415,S,S*0.012);ctx.fillRect(0,S*0.573,S,S*0.012);
-  ctx.fillRect(0,S*0.497,S,S*0.006);
   // kagari zigzag threads (periodic in x)
   const zig=(cy,amp,k,color,w,phase)=>{
     ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineCap='round';ctx.beginPath();
@@ -266,40 +284,54 @@ function drawTemari(ctx,S){
     }
     ctx.stroke();
   };
-  zig(S*0.24,S*0.09,6,'#f2e8d5',S*0.014,0);
-  zig(S*0.24,S*0.09,6,'#4e7d5b',S*0.007,0.5/6*0+0.08);
-  zig(S*0.76,S*0.09,6,'#f2e8d5',S*0.014,0.5/6);
-  zig(S*0.76,S*0.09,6,'#d98aa0',S*0.007,0.5/6+0.08);
-  zig(S*0.5,S*0.055,8,'#e7c76a',S*0.009,0);
+  zig(S*0.24,S*0.09,6,pal.threadA,S*0.014,0);
+  zig(S*0.24,S*0.09,6,pal.threadA2,S*0.007,0.08);
+  zig(S*0.76,S*0.09,6,pal.threadB,S*0.014,0.5/6);
+  zig(S*0.76,S*0.09,6,pal.threadB2,S*0.007,0.5/6+0.08);
+  zig(S*0.5,S*0.055,8,pal.center,S*0.009,0);
   // stitch dots
-  ctx.fillStyle='#f2e8d5';
+  ctx.fillStyle=pal.dot;
   for(let i=0;i<48;i++){
     const x=(i/48)*S,y=S*(0.42+0.16*((i%2)?0.18:0.82));
     ctx.beginPath();ctx.arc(x,y,S*0.005,0,7);ctx.fill();
   }
 }
-const texCvs=document.createElement('canvas');texCvs.width=texCvs.height=512;
-drawTemari(texCvs.getContext('2d'),512);
-const ballTex=gl.createTexture();
-gl.bindTexture(gl.TEXTURE_2D,ballTex);
-gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,texCvs);
-gl.generateMipmap(gl.TEXTURE_2D);
-gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
-gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
 
-/* title image: temari on transparent circle */
-(function(){
+/* ===== ball skins (unlocked with 小判/koban collected in-game) ===== */
+const SKINS=[
+  {id:'shu',name:'しゅいろ',cost:0,pal:{base:'#a83232',obi:'#233a63',obiEdge:'#d4a93c',threadA:'#f2e8d5',threadA2:'#4e7d5b',threadB:'#f2e8d5',threadB2:'#d98aa0',center:'#e7c76a',dot:'#f2e8d5'}},
+  {id:'kin',name:'こがね',cost:25,pal:{base:'#c79a3a',obi:'#7c2c1d',obiEdge:'#f2e8d5',threadA:'#fff6df',threadA2:'#8a4b2a',threadB:'#fff6df',threadB2:'#3f5f8a',center:'#f2e8d5',dot:'#7c2c1d'}},
+  {id:'sakura',name:'さくら',cost:55,pal:{base:'#e58aa0',obi:'#f2e8d5',obiEdge:'#b5432e',threadA:'#ffffff',threadA2:'#4e7d5b',threadB:'#ffffff',threadB2:'#d4a93c',center:'#b5432e',dot:'#ffffff'}},
+  {id:'ai',name:'あいぞめ',cost:90,pal:{base:'#1f3a63',obi:'#f2e8d5',obiEdge:'#b5432e',threadA:'#f2e8d5',threadA2:'#d4a93c',threadB:'#f2e8d5',threadB2:'#8a4b2a',center:'#d4a93c',dot:'#f2e8d5'}},
+  {id:'kuro',name:'まきえ',cost:150,pal:{base:'#141414',obi:'#141414',obiEdge:'#d4a93c',threadA:'#d4a93c',threadA2:'#b5432e',threadB:'#d4a93c',threadB2:'#b5432e',center:'#d4a93c',dot:'#d4a93c'}}
+];
+function skinPal(id){const s=SKINS.find(s=>s.id===id);return s?s.pal:SKINS[0].pal;}
+function buildBallTexture(pal){
+  const c=document.createElement('canvas');c.width=c.height=512;drawTemari(c.getContext('2d'),512,pal);
+  const tex=gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D,tex);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  return tex;
+}
+const skinTex={};for(const s of SKINS)skinTex[s.id]=buildBallTexture(s.pal);
+
+/* title image: temari on transparent circle, reflecting the equipped skin */
+function titleImageDataURL(pal){
   const c=document.createElement('canvas');c.width=c.height=360;
   const x=c.getContext('2d');
   x.save();x.beginPath();x.arc(180,180,176,0,7);x.clip();
-  const t=document.createElement('canvas');t.width=t.height=360;drawTemari(t.getContext('2d'),360);
+  const t=document.createElement('canvas');t.width=t.height=360;drawTemari(t.getContext('2d'),360,pal);
   x.drawImage(t,0,0);
   const sh=x.createRadialGradient(120,110,20,180,180,240);
   sh.addColorStop(0,'rgba(255,245,220,0.35)');sh.addColorStop(0.4,'rgba(255,255,255,0)');sh.addColorStop(1,'rgba(10,10,30,0.5)');
   x.fillStyle=sh;x.fillRect(0,0,360,360);
   x.restore();
-  document.getElementById('temariImg').src=c.toDataURL();
-})();
+  return c.toDataURL();
+}
+function refreshTitleImage(){document.getElementById('temariImg').src=titleImageDataURL(skinPal(save.skin));}
 
 /* ===== draw helpers ===== */
 let PROJ=mIdent(),VIEW=mIdent(),CAM=[0,0,0];
@@ -328,7 +360,7 @@ function box(x,y,z,sx,sy,sz,color,emis,ry,rx){
 function ballDraw(x,y,z,roll,r){
   let m=mMul(mT(x,y,z),mRX(roll));
   m=mMul(m,mS(r*2,r*2,r*2));
-  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,ballTex);gl.uniform1i(U.uTex,0);
+  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,skinTex[save.skin]||skinTex.shu);gl.uniform1i(U.uTex,0);
   drawMesh(SPHERE,m,[1,1,1],0,true);
 }
 
@@ -387,7 +419,10 @@ const SAVE_KEY='temari-korokoro-v1';
 let save;
 try{save=JSON.parse(localStorage.getItem(SAVE_KEY))||{};}catch(e){save={};}
 save.stars=save.stars||{}; save.coins=save.coins||0;
+save.ownedSkins=save.ownedSkins||['shu']; save.skin=save.skin||'shu';
 function persist(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));}catch(e){}}
+window.save=save;window.persist=persist; // debug handle
+refreshTitleImage();
 
 const G={
   mode:'title', lvNum:1, lv:null,
@@ -450,7 +485,7 @@ function step(dt){
   const sp=G.lv.speed;
   G.z+=sp*dt;
   G.roll+=sp*dt/R;
-  G.x=lerp(G.x,G.tx,Math.min(1,dt*12));
+  G.x=lerp(G.x,G.tx,Math.min(1,dt*15));
   // vertical
   const over=groundUnder(G.x,G.z);
   if(G.grounded){
@@ -680,7 +715,7 @@ function startRoll(){
 function stopRoll(){if(rollNode){try{rollNode.stop();}catch(e){}rollNode=null;rollGain=null;}}
 
 /* ===== screens ===== */
-const SCREENS=['scrTitle','scrLevels','scrPause','scrClear'];
+const SCREENS=['scrTitle','scrLevels','scrPause','scrClear','scrShop'];
 function showScreen(id){
   for(const s of SCREENS)document.getElementById(s).classList.toggle('hidden',s!==id);
 }
@@ -701,8 +736,48 @@ function buildLevels(){
 }
 function toLevels(){buildLevels();showScreen('scrLevels');document.getElementById('hud').classList.add('hidden');G.mode='menu';stopRoll();}
 
+function buildShop(){
+  document.getElementById('shopCoins').textContent=save.coins;
+  const grid=document.getElementById('shopgrid');grid.innerHTML='';
+  for(const s of SKINS){
+    const owned=save.ownedSkins.includes(s.id);
+    const equipped=save.skin===s.id;
+    const card=document.createElement('div');
+    card.className='skincard'+(equipped?' equipped':'');
+    const img=document.createElement('img');img.src=titleImageDataURL(s.pal);img.alt=s.name;
+    const nm=document.createElement('div');nm.className='nm';nm.textContent=s.name;
+    card.appendChild(img);card.appendChild(nm);
+    const btn=document.createElement('button');
+    if(owned){
+      if(equipped){btn.textContent='そうびちゅう';btn.className='ghost';btn.disabled=true;}
+      else{
+        btn.textContent='そうびする';
+        btn.onclick=()=>{sfx('tap');save.skin=s.id;persist();refreshTitleImage();buildShop();};
+      }
+    }else{
+      const cost=document.createElement('div');cost.className='cost';
+      cost.innerHTML='<span class="koban"></span>'+s.cost;
+      card.appendChild(cost);
+      const afford=save.coins>=s.cost;
+      btn.textContent='こうにゅう';
+      btn.className=afford?'':'ghost';
+      btn.disabled=!afford;
+      btn.onclick=()=>{
+        if(save.coins<s.cost)return;
+        save.coins-=s.cost;save.ownedSkins.push(s.id);save.skin=s.id;persist();
+        sfx('clear');refreshTitleImage();buildShop();buildLevels();
+      };
+    }
+    card.appendChild(btn);
+    grid.appendChild(card);
+  }
+}
+function toShop(){buildShop();showScreen('scrShop');document.getElementById('hud').classList.add('hidden');G.mode='menu';stopRoll();}
+
 document.getElementById('btnStart').onclick=()=>{audio();sfx('tap');toLevels();};
 document.getElementById('btnBackTitle').onclick=()=>{sfx('tap');showScreen('scrTitle');};
+document.getElementById('btnShop').onclick=()=>{sfx('tap');toShop();};
+document.getElementById('btnShopBack').onclick=()=>{sfx('tap');toLevels();};
 document.getElementById('pauseBtn').onclick=()=>{if(G.mode!=='play')return;sfx('tap');G.mode='pause';stopRoll();showScreen('scrPause');};
 document.getElementById('btnResume').onclick=()=>{sfx('tap');showScreen(null);G.mode='play';startRoll();};
 document.getElementById('btnRetry').onclick=()=>{sfx('tap');startLevel(G.lvNum);};
@@ -712,30 +787,27 @@ document.getElementById('btnNext').onclick=()=>{sfx('tap');startLevel(Math.min(1
 document.getElementById('btnClearQuit').onclick=()=>{sfx('tap');toLevels();};
 
 /* ===== input ===== */
-let downX=0,downY=0,downT=0,downActive=false;
-function setLane(delta){
-  G.lane=clamp(G.lane+delta,0,2);
-  G.tx=LANES[G.lane];
-  sfx('tap');
+let dragActive=false;
+function laneFromX(px){return clamp(Math.floor(px/innerWidth*3),0,2);}
+function setLaneAbs(lane){
+  if(lane===G.lane)return;
+  G.lane=lane;G.tx=LANES[lane];sfx('tap');
 }
 addEventListener('pointerdown',e=>{
   if(G.mode!=='play')return;
-  downActive=true;downX=e.clientX;downY=e.clientY;downT=performance.now();
-  tip(false);
+  dragActive=true;tip(false);
+  setLaneAbs(laneFromX(e.clientX));
 });
-addEventListener('pointerup',e=>{
-  if(!downActive||G.mode!=='play'){downActive=false;return;}
-  downActive=false;
-  const dx=e.clientX-downX, dy=e.clientY-downY;
-  if(Math.abs(dy)>Math.abs(dx)*1.4&&Math.abs(dy)>40)return; // vertical flick: ignore
-  const dir=Math.abs(dx)>24?(dx>0?1:-1):(downX<innerWidth/2?-1:1);
-  setLane(dir);
+addEventListener('pointermove',e=>{
+  if(!dragActive||G.mode!=='play')return;
+  setLaneAbs(laneFromX(e.clientX));
 });
-addEventListener('pointercancel',()=>downActive=false);
+addEventListener('pointerup',()=>dragActive=false);
+addEventListener('pointercancel',()=>dragActive=false);
 addEventListener('keydown',e=>{
   if(G.mode!=='play')return;
-  if(e.key==='ArrowLeft')setLane(-1);
-  if(e.key==='ArrowRight')setLane(1);
+  if(e.key==='ArrowLeft')setLaneAbs(clamp(G.lane-1,0,2));
+  if(e.key==='ArrowRight')setLaneAbs(clamp(G.lane+1,0,2));
 });
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden&&G.mode==='play'){G.mode='pause';stopRoll();showScreen('scrPause');}
