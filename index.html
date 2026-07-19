@@ -75,7 +75,7 @@ button.ghost:active{transform:translateY(2px);}
   <h1 class="title">てまりころりん</h1>
   <div class="sub">ゆびで まりを ころがして ゴールへ</div>
   <button id="btnStart">はじめる</button>
-  <div class="small">v5</div>
+  <div class="small">v6</div>
 </div>
 
 <div id="scrLevels" class="screen hidden">
@@ -365,7 +365,7 @@ function ballDraw(x,y,z,roll,r){
 }
 
 /* ===== level generation ===== */
-const DZ=1.2, LANES=[-1.2,0,1.2], R=0.45;
+const DZ=1.2, LANES=[1.2,0,-1.2], R=0.45; // camera faces +z so world x is mirrored on screen; lane 0 = screen left
 function genLevel(n){ // n: 1..10
   const rnd=mulberry32(n*9127+11);
   const L=80+n*14;
