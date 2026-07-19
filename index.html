@@ -35,7 +35,7 @@ button.ghost:active{transform:translateY(2px);}
 .lvbtn.locked{opacity:.32;border-color:rgba(242,232,213,.2);}
 .lvbtn:active{transform:scale(.95);}
 #hud{position:fixed;left:0;right:0;top:0;z-index:10;padding:calc(10px + env(safe-area-inset-top)) 14px 8px;display:flex;align-items:center;gap:12px;pointer-events:none;}
-#hud .pill{background:rgba(10,15,32,.55);backdrop-filter:blur(6px);border-radius:999px;padding:6px 14px;font-size:14px;letter-spacing:.06em;display:flex;align-items:center;gap:7px;}
+#hud .pill{background:rgba(10,15,32,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border-radius:999px;padding:6px 14px;font-size:14px;letter-spacing:.06em;display:flex;align-items:center;gap:7px;}
 .koban{display:inline-block;width:13px;height:18px;background:linear-gradient(180deg,#ecd27c,#c79a2e);border-radius:50%/40%;box-shadow:inset 0 0 0 1.5px rgba(120,84,10,.6);}
 #prog{flex:1;height:6px;border-radius:99px;background:rgba(242,232,213,.15);overflow:hidden;}
 #progFill{height:100%;width:0%;background:linear-gradient(90deg,var(--kin),#f0d98a);border-radius:99px;transition:width .2s linear;}
@@ -59,13 +59,14 @@ button.ghost:active{transform:translateY(2px);}
   <button id="pauseBtn">❚❚</button>
 </div>
 <div id="toast"></div>
-<div id="tip">← ゆびで よこに うごかそう →</div>
+<div id="tip">← みぎ・ひだり タップで いどう →</div>
 
 <div id="scrTitle" class="screen">
   <img id="temariImg" class="temari-img" alt="てまり">
   <h1 class="title">てまりころりん</h1>
   <div class="sub">ゆびで まりを ころがして ゴールへ</div>
   <button id="btnStart">はじめる</button>
+  <div class="small">v3</div>
 </div>
 
 <div id="scrLevels" class="screen hidden">
@@ -97,6 +98,15 @@ button.ghost:active{transform:translateY(2px);}
 
 <script>
 "use strict";
+function showFatal(msg){
+  var d=document.getElementById('fatal');
+  if(!d){d=document.createElement('div');d.id='fatal';
+    d.style.cssText='position:fixed;left:12px;right:12px;bottom:12px;z-index:99;background:rgba(120,30,20,.95);color:#f2e8d5;border-radius:12px;padding:12px 14px;font-size:12px;line-height:1.5;word-break:break-all;';
+    document.body.appendChild(d);}
+  d.textContent='エラー: '+msg;
+}
+window.addEventListener('error',function(e){showFatal((e.message||'unknown')+' (line '+(e.lineno||'?')+')');});
+try{
 /* ===== utils ===== */
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
 const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
@@ -125,6 +135,7 @@ function mLookAt(ex,ey,ez,cx,cy,cz){
 /* ===== GL ===== */
 const cvs=document.getElementById('gl');
 const gl=cvs.getContext('webgl2',{antialias:true,alpha:false});
+if(!gl){throw new Error('この環境ではWebGL2がつかえません。SafariやChromeでひらいてください(ファイルアプリのプレビューでは動きません)');}
 function makeShader(t,src){const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;}
 function makeProg(vs,fs){const p=gl.createProgram();gl.attachShader(p,makeShader(gl.VERTEX_SHADER,vs));gl.attachShader(p,makeShader(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));return p;}
 
@@ -380,7 +391,7 @@ function persist(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));}catc
 
 const G={
   mode:'title', lvNum:1, lv:null,
-  x:0,y:R,z:0,vy:0,roll:0,tx:0,
+  x:0,y:R,z:0,vy:0,roll:0,tx:0,lane:1,
   grounded:true, inv:0, misses:0, got:0,
   cpZ:0, t:0, shake:0, clearAt:0
 };
@@ -389,7 +400,7 @@ let camX=0,camY=3,camZ=-6;
 function startLevel(n){
   G.lvNum=n; G.lv=genLevel(n);
   for(const r of G.lv.rows)for(const c of r.coins)c.taken=false;
-  G.x=0;G.tx=0;G.y=R;G.z=DZ*2;G.vy=0;G.roll=0;
+  G.x=0;G.tx=0;G.lane=1;G.y=R;G.z=DZ*2;G.vy=0;G.roll=0;
   G.grounded=true;G.inv=0;G.misses=0;G.got=0;G.cpZ=G.z;G.t=0;
   G.mode='play';
   showScreen(null);
@@ -423,7 +434,7 @@ function miss(){
   if(G.inv>0)return;
   G.misses++; G.shake=0.5;
   sfx('hit');
-  G.x=0;G.tx=0;G.y=R;G.z=Math.max(G.cpZ,DZ*2);G.vy=0;G.grounded=true;G.inv=1.6;
+  G.x=0;G.tx=0;G.lane=1;G.y=R;G.z=Math.max(G.cpZ,DZ*2);G.vy=0;G.grounded=true;G.inv=1.6;
   toast('もういっかい！');
 }
 function toast(s){
@@ -701,24 +712,30 @@ document.getElementById('btnNext').onclick=()=>{sfx('tap');startLevel(Math.min(1
 document.getElementById('btnClearQuit').onclick=()=>{sfx('tap');toLevels();};
 
 /* ===== input ===== */
-let dragging=false,lastPX=0;
-const XMAX=1.75;
-function pxToWorld(dx){return dx/innerWidth*6.0;}
+let downX=0,downY=0,downT=0,downActive=false;
+function setLane(delta){
+  G.lane=clamp(G.lane+delta,0,2);
+  G.tx=LANES[G.lane];
+  sfx('tap');
+}
 addEventListener('pointerdown',e=>{
   if(G.mode!=='play')return;
-  dragging=true;lastPX=e.clientX;tip(false);
+  downActive=true;downX=e.clientX;downY=e.clientY;downT=performance.now();
+  tip(false);
 });
-addEventListener('pointermove',e=>{
-  if(!dragging||G.mode!=='play')return;
-  G.tx=clamp(G.tx+pxToWorld(e.clientX-lastPX),-XMAX,XMAX);
-  lastPX=e.clientX;
+addEventListener('pointerup',e=>{
+  if(!downActive||G.mode!=='play'){downActive=false;return;}
+  downActive=false;
+  const dx=e.clientX-downX, dy=e.clientY-downY;
+  if(Math.abs(dy)>Math.abs(dx)*1.4&&Math.abs(dy)>40)return; // vertical flick: ignore
+  const dir=Math.abs(dx)>24?(dx>0?1:-1):(downX<innerWidth/2?-1:1);
+  setLane(dir);
 });
-addEventListener('pointerup',()=>dragging=false);
-addEventListener('pointercancel',()=>dragging=false);
+addEventListener('pointercancel',()=>downActive=false);
 addEventListener('keydown',e=>{
   if(G.mode!=='play')return;
-  if(e.key==='ArrowLeft')G.tx=clamp(G.tx-0.65,-XMAX,XMAX);
-  if(e.key==='ArrowRight')G.tx=clamp(G.tx+0.65,-XMAX,XMAX);
+  if(e.key==='ArrowLeft')setLane(-1);
+  if(e.key==='ArrowRight')setLane(1);
 });
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden&&G.mode==='play'){G.mode='pause';stopRoll();showScreen('scrPause');}
@@ -739,6 +756,7 @@ function loop(now){
   }
   requestAnimationFrame(loop);
 }
+window.G=G; // debug handle
 // demo course behind title
 G.lv=genLevel(1);G.z=DZ*6;G.y=R;
 requestAnimationFrame(loop);
@@ -747,6 +765,7 @@ if('serviceWorker' in navigator){
   addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 }
 
+}catch(e){showFatal(e.message||String(e));}
 </script>
 </body>
 </html>
