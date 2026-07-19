@@ -68,14 +68,14 @@ button.ghost:active{transform:translateY(2px);}
   <button id="pauseBtn">❚❚</button>
 </div>
 <div id="toast"></div>
-<div id="tip">← ゆびを スライドして いどう →</div>
+<div id="tip">よこスライドで いどう・うえで かそく</div>
 
 <div id="scrTitle" class="screen">
   <img id="temariImg" class="temari-img" alt="てまり">
   <h1 class="title">てまりころりん</h1>
   <div class="sub">ゆびで まりを ころがして ゴールへ</div>
   <button id="btnStart">はじめる</button>
-  <div class="small">v6</div>
+  <div class="small">v8</div>
 </div>
 
 <div id="scrLevels" class="screen hidden">
@@ -426,7 +426,7 @@ refreshTitleImage();
 
 const G={
   mode:'title', lvNum:1, lv:null,
-  x:0,y:R,z:0,vy:0,roll:0,tx:0,lane:1,
+  x:0,y:R,z:0,vy:0,roll:0,tx:0,lane:1,spd:1,
   grounded:true, inv:0, misses:0, got:0,
   cpZ:0, t:0, shake:0, clearAt:0
 };
@@ -435,7 +435,7 @@ let camX=0,camY=3,camZ=-6;
 function startLevel(n){
   G.lvNum=n; G.lv=genLevel(n);
   for(const r of G.lv.rows)for(const c of r.coins)c.taken=false;
-  G.x=0;G.tx=0;G.lane=1;G.y=R;G.z=DZ*2;G.vy=0;G.roll=0;
+  G.x=0;G.tx=0;G.lane=1;G.spd=1;G.y=R;G.z=DZ*2;G.vy=0;G.roll=0;
   G.grounded=true;G.inv=0;G.misses=0;G.got=0;G.cpZ=G.z;G.t=0;
   G.mode='play';
   showScreen(null);
@@ -482,10 +482,10 @@ function step(dt){
   G.t+=dt;
   if(G.inv>0)G.inv-=dt;
   if(G.shake>0)G.shake-=dt;
-  const sp=G.lv.speed;
+  const sp=G.lv.speed*G.spd;
   G.z+=sp*dt;
   G.roll+=sp*dt/R;
-  G.x=lerp(G.x,G.tx,Math.min(1,dt*15));
+  G.x=lerp(G.x,G.tx,Math.min(1,dt*(dragActive?22:15)));
   // vertical
   const over=groundUnder(G.x,G.z);
   if(G.grounded){
@@ -585,20 +585,34 @@ function render(now,dt){
   gl.uniform3fv(U.uCam,CAM);
 
   if(G.lv){
+    const ACC=[[0.93,0.5,0.6],[0.95,0.78,0.32],[0.36,0.72,0.52],[0.5,0.62,0.95]]; // 桜・金・緑・浅葱
     const zi=Math.round(G.z/DZ);
     for(let k=Math.max(0,zi-6);k<Math.min(G.lv.len,zi+44);k++){
       const r=G.lv.rows[k],rz=k*DZ;
+      const rowHash=(k*2654435761)>>>0;
       for(let l=0;l<3;l++){
         if(!r.m[l])continue;
-        let c=((k+l)%2)?COL.shu:COL.shuD;
-        if(r.cp)c=COL.kin;
-        if(r.ramp)c=COL.kin;
-        box(LANES[l],-0.36,rz,1.18,0.72,1.18,c,r.ramp?0.35:(r.cp?0.25:0));
+        let c=((k+l)%2)?COL.shu:COL.shuD, em=0;
+        const h=(rowHash^(l*19349663))>>>0;
+        if(h%6===0){c=ACC[h%4];em=0.18;} // scattered colorful accent tiles
+        if(r.cp){c=COL.kin;em=0.25;}
+        if(r.ramp){c=COL.kin;em=0.4+0.25*Math.sin(G.t*6);} // pulsing ramp
+        box(LANES[l],-0.36,rz,1.18,0.72,1.18,c,em);
       }
-      // side rails every few rows
-      if(k%2===0&&r.m[0])box(-1.95,0.05,rz,0.12,0.3,1.2,COL.wood,0);
-      if(k%2===0&&r.m[2])box(1.95,0.05,rz,0.12,0.3,1.2,COL.wood,0);
-      if(r.cp){ // lantern pair
+      // continuous glowing gold rails along track edges
+      if(r.m[0])box(1.86,-0.02,rz,0.1,0.14,1.2,COL.kin,0.55);
+      if(r.m[2])box(-1.86,-0.02,rz,0.1,0.14,1.2,COL.kin,0.55);
+      // colorful lantern posts along the whole course
+      if(k%8===4&&(r.m[0]||r.m[2])){
+        const lc=ACC[(k/8|0)%4];
+        for(const s of [-1,1]){
+          if(!(s<0?r.m[2]:r.m[0]))continue;
+          box(2.15*s,0.55,rz,0.08,1.2,0.08,COL.wood,0);
+          let m=mMul(mT(2.15*s,1.35,rz),mS(0.42,0.55,0.42));
+          drawMesh(SPHERE,m,lc,0.85+0.12*Math.sin(G.t*3+k));
+        }
+      }
+      if(r.cp){ // checkpoint: big warm lantern pair
         for(const s of [-1,1]){
           box(2.15*s,0.7,rz,0.09,1.5,0.09,COL.wood,0);
           let m=mMul(mT(2.15*s,1.65,rz),mS(0.55,0.7,0.55));
@@ -615,7 +629,7 @@ function render(now,dt){
         if(c.taken)continue;
         let m=mMul(mT(LANES[c.lane],R+0.42,rz),mRY(G.t*3.4+k));
         m=mMul(m,mS(0.62,0.86,0.16));
-        drawMesh(SPHERE,m,COL.kin,0.55);
+        drawMesh(SPHERE,m,COL.kin,0.6+0.2*Math.sin(G.t*6+k));
       }
       const ob=r.ob;
       if(ob){
@@ -787,27 +801,34 @@ document.getElementById('btnNext').onclick=()=>{sfx('tap');startLevel(Math.min(1
 document.getElementById('btnClearQuit').onclick=()=>{sfx('tap');toLevels();};
 
 /* ===== input ===== */
-let dragActive=false;
-function laneFromX(px){return clamp(Math.floor(px/innerWidth*3),0,2);}
-function setLaneAbs(lane){
-  if(lane===G.lane)return;
-  G.lane=lane;G.tx=LANES[lane];sfx('tap');
-}
+let dragActive=false,lastPX=0,lastPY=0;
+const XMAX=1.75, SENS=4.6; // full-screen swipe ≈ full track width
+const SPD_MIN=0.55, SPD_MAX=1.8, SPD_SENS=1.6; // vertical drag speed range
+function nearestLane(x){let best=0,bd=99;for(let l=0;l<3;l++){const d=Math.abs(x-LANES[l]);if(d<bd){bd=d;best=l;}}return best;}
 addEventListener('pointerdown',e=>{
   if(G.mode!=='play')return;
-  dragActive=true;tip(false);
-  setLaneAbs(laneFromX(e.clientX));
+  dragActive=true;lastPX=e.clientX;lastPY=e.clientY;tip(false);
 });
 addEventListener('pointermove',e=>{
   if(!dragActive||G.mode!=='play')return;
-  setLaneAbs(laneFromX(e.clientX));
+  // finger right = screen right = world -x (camera faces +z)
+  G.tx=clamp(G.tx-(e.clientX-lastPX)/innerWidth*SENS,-XMAX,XMAX);
+  // finger up = accelerate, finger down = slow down (screen y grows downward)
+  G.spd=clamp(G.spd-(e.clientY-lastPY)/innerHeight*SPD_SENS,SPD_MIN,SPD_MAX);
+  lastPX=e.clientX;lastPY=e.clientY;
+  G.lane=nearestLane(G.tx);
 });
-addEventListener('pointerup',()=>dragActive=false);
+addEventListener('pointerup',()=>{
+  if(dragActive&&G.mode==='play'){G.lane=nearestLane(G.tx);G.tx=LANES[G.lane];} // soft magnet to lane center
+  dragActive=false;
+});
 addEventListener('pointercancel',()=>dragActive=false);
 addEventListener('keydown',e=>{
   if(G.mode!=='play')return;
-  if(e.key==='ArrowLeft')setLaneAbs(clamp(G.lane-1,0,2));
-  if(e.key==='ArrowRight')setLaneAbs(clamp(G.lane+1,0,2));
+  if(e.key==='ArrowLeft'){G.lane=clamp(nearestLane(G.tx)-1,0,2);G.tx=LANES[G.lane];}
+  if(e.key==='ArrowRight'){G.lane=clamp(nearestLane(G.tx)+1,0,2);G.tx=LANES[G.lane];}
+  if(e.key==='ArrowUp')G.spd=clamp(G.spd+0.15,SPD_MIN,SPD_MAX);
+  if(e.key==='ArrowDown')G.spd=clamp(G.spd-0.15,SPD_MIN,SPD_MAX);
 });
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden&&G.mode==='play'){G.mode='pause';stopRoll();showScreen('scrPause');}
