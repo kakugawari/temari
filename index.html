@@ -56,6 +56,8 @@ button.ghost:active{transform:translateY(2px);}
 .skincard .cost .koban{width:11px;height:11px;}
 .skincard button{padding:7px 16px;font-size:13px;letter-spacing:.06em;}
 .skincard button.ghost{padding:6.5px 15px;}
+.tab{padding:8px 22px;font-size:14px;opacity:.55;}
+.tab.active{opacity:1;background:rgba(34,224,255,.14);box-shadow:inset 0 0 0 1.5px var(--cyan),0 0 16px rgba(34,224,255,.4);}
 #tip{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;font-size:12px;opacity:0;letter-spacing:.24em;text-transform:uppercase;color:var(--cyan);z-index:10;pointer-events:none;transition:opacity .4s;text-shadow:0 0 10px rgba(34,224,255,.7);}
 </style>
 </head>
@@ -77,7 +79,7 @@ button.ghost:active{transform:translateY(2px);}
   <h1 class="title">NEON&nbsp;ROLL</h1>
   <div class="sub">Slide &amp; Boost to the Goal</div>
   <button id="btnStart">START</button>
-  <div class="small">v9</div>
+  <div class="small">v10</div>
 </div>
 
 <div id="scrLevels" class="screen hidden">
@@ -93,6 +95,10 @@ button.ghost:active{transform:translateY(2px);}
 <div id="scrShop" class="screen hidden">
   <h1 class="title" style="font-size:clamp(24px,7vw,36px)">GARAGE</h1>
   <div class="pill" style="background:rgba(8,6,20,.6);border-radius:999px;padding:6px 16px;display:flex;gap:8px;align-items:center;"><span class="koban"></span><span id="shopCoins">0</span><span class="small">CREDITS</span></div>
+  <div class="row" style="gap:8px;">
+    <button class="ghost tab" id="tabColor">COLOR</button>
+    <button class="ghost tab" id="tabShape">SHAPE</button>
+  </div>
   <div class="shopgrid" id="shopgrid"></div>
   <button class="ghost" id="btnShopBack">BACK</button>
 </div>
@@ -282,8 +288,66 @@ function sphereMesh(st,sl){
   }
   return makeMesh(p,n,u,ix);
 }
+// low-poly faceted sphere (flat normals) for a gem/crystal look
+function facetSphere(st,sl){
+  const p=[],n=[],u=[],ix=[];
+  const P=(ph,th)=>[Math.sin(ph)*Math.cos(th)*0.5,Math.cos(ph)*0.5,Math.sin(ph)*Math.sin(th)*0.5];
+  let idx=0;
+  for(let i=0;i<st;i++){const ph0=i/st*Math.PI,ph1=(i+1)/st*Math.PI;
+    for(let j=0;j<sl;j++){const th0=j/sl*2*Math.PI,th1=(j+1)/sl*2*Math.PI;
+      const a=P(ph0,th0),b=P(ph1,th0),c=P(ph1,th1),d=P(ph0,th1);
+      for(const tri of [[a,b,c],[a,c,d]]){
+        const ux=tri[1][0]-tri[0][0],uy=tri[1][1]-tri[0][1],uz=tri[1][2]-tri[0][2];
+        const vx=tri[2][0]-tri[0][0],vy=tri[2][1]-tri[0][1],vz=tri[2][2]-tri[0][2];
+        let nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;const L=Math.hypot(nx,ny,nz)||1;nx/=L;ny/=L;nz/=L;
+        for(const vtx of tri){p.push(...vtx);n.push(nx,ny,nz);u.push((vtx[0]+0.5),(vtx[1]+0.5));ix.push(idx++);}
+      }
+    }}
+  return makeMesh(p,n,u,ix);
+}
+// octahedron (diamond)
+function octaMesh(){
+  const v=[[0,0.6,0],[0,-0.6,0],[0.6,0,0],[-0.6,0,0],[0,0,0.6],[0,0,-0.6]];
+  const f=[[0,2,4],[0,4,3],[0,3,5],[0,5,2],[1,4,2],[1,3,4],[1,5,3],[1,2,5]];
+  const p=[],n=[],u=[],ix=[];let idx=0;
+  for(const [a,b,c] of f){
+    const A=v[a],B=v[b],C=v[c];
+    const ux=B[0]-A[0],uy=B[1]-A[1],uz=B[2]-A[2],vx=C[0]-A[0],vy=C[1]-A[1],vz=C[2]-A[2];
+    let nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;const L=Math.hypot(nx,ny,nz)||1;nx/=L;ny/=L;nz/=L;
+    for(const V of [A,B,C]){p.push(...V);n.push(nx,ny,nz);u.push(V[0]+0.5,V[1]+0.5);ix.push(idx++);}
+  }
+  return makeMesh(p,n,u,ix);
+}
+// capsule (pill) — rolls along z
+function capsuleMesh(sl){
+  const p=[],n=[],u=[],ix=[];const R=0.32,H=0.26; // half-length H
+  const rings=[];
+  for(let i=0;i<=sl;i++){const v=i/sl,ph=v*Math.PI; // 0..pi
+    const y=Math.cos(ph)*R;const rr=Math.sin(ph)*R;
+    const off=(ph<=Math.PI/2)?H:-H; // top hemi shifted +z, bottom -z
+    const ring=[];
+    for(let j=0;j<=sl;j++){const w=j/sl,th=w*2*Math.PI;
+      const x=rr*Math.cos(th),z=rr*Math.sin(th)+off;
+      p.push(x,y,z);const nl=Math.hypot(x,y,z-off)||1;n.push(x/nl,y/nl,(z-off)/nl);u.push(w,v);
+      ring.push(p.length/3-1);
+    }
+    rings.push(ring);
+  }
+  for(let i=0;i<sl;i++)for(let j=0;j<sl;j++){
+    const a=rings[i][j],b=rings[i+1][j],c=rings[i+1][j+1],d=rings[i][j+1];
+    ix.push(a,b,d,d,b,c);
+  }
+  return makeMesh(p,n,u,ix);
+}
 const CUBE=cubeMesh();
 const SPHERE=sphereMesh(16,24);
+const SHAPES={
+  sphere:SPHERE,
+  gem:facetSphere(6,8),
+  cube:CUBE,
+  diamond:octaMesh(),
+  capsule:capsuleMesh(16)
+};
 
 /* ===== ball texture (palette-driven neon orb) ===== */
 function drawTemari(ctx,S,pal){
@@ -297,7 +361,11 @@ function drawTemari(ctx,S,pal){
   ctx.lineCap='round';
   ctx.shadowColor=pal.glow;ctx.shadowBlur=S*0.02;
   ctx.strokeStyle=pal.grid;ctx.lineWidth=S*0.006;
-  for(let i=0;i<8;i++){const x=(i/8)*S;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,S);ctx.stroke();}
+  for(let i=0;i<8;i++){
+    const x=(i/8)*S;
+    if(pal.rainbow){const hue=(i/8)*360;ctx.strokeStyle='hsl('+hue+',100%,60%)';ctx.shadowColor='hsl('+hue+',100%,60%)';}
+    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,S);ctx.stroke();
+  }
   // latitude lines (horizontal)
   for(let j=1;j<8;j++){const y=(j/8)*S;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(S,y);ctx.stroke();}
   // bright equator band
@@ -321,7 +389,19 @@ const SKINS=[
   {id:'mag',name:'PLASMA',cost:25,pal:{base:'#2a0620',grid:'#ff2fb0',glow:'#ff2fb0',band:'#ff77cf',band2:'#ffffff',node:'#ffc0ec'}},
   {id:'lime',name:'MATRIX',cost:55,pal:{base:'#08210c',grid:'#9dff3c',glow:'#9dff3c',band:'#d0ff8a',band2:'#ffffff',node:'#e6ffbf'}},
   {id:'violet',name:'VAPOR',cost:90,pal:{base:'#14082e',grid:'#b388ff',glow:'#7c4dff',band:'#22e0ff',band2:'#ff2fb0',node:'#e0d0ff'}},
-  {id:'gold',name:'AURUM',cost:150,pal:{base:'#241704',grid:'#ffcf3c',glow:'#ffb300',band:'#fff0a8',band2:'#ffffff',node:'#fff3c0'}}
+  {id:'gold',name:'AURUM',cost:150,pal:{base:'#241704',grid:'#ffcf3c',glow:'#ffb300',band:'#fff0a8',band2:'#ffffff',node:'#fff3c0'}},
+  {id:'ember',name:'EMBER',cost:120,pal:{base:'#2b0a05',grid:'#ff6a2c',glow:'#ff4500',band:'#ffb070',band2:'#fff2d0',node:'#ffd0a0'}},
+  {id:'ice',name:'GLACIER',cost:120,pal:{base:'#06182a',grid:'#7fdfff',glow:'#3ba8ff',band:'#d6f4ff',band2:'#ffffff',node:'#eaffff'}},
+  {id:'toxic',name:'TOXIC',cost:200,pal:{base:'#0a2410',grid:'#c8ff00',glow:'#88ff00',band:'#eaff7a',band2:'#ffffff',node:'#f4ffb0'}},
+  {id:'rainbow',name:'PRISM',cost:300,pal:{base:'#101020',grid:'#ff2fb0',glow:'#22e0ff',band:'#9dff3c',band2:'#ffd23c',node:'#ffffff',rainbow:true}}
+];
+/* ===== ball shapes (unlocked with credits) ===== */
+const SHAPE_CATALOG=[
+  {id:'sphere',name:'ORB',cost:0},
+  {id:'gem',name:'CRYSTAL',cost:40},
+  {id:'diamond',name:'PRISM-8',cost:70},
+  {id:'cube',name:'CUBE',cost:110},
+  {id:'capsule',name:'PILL',cost:160}
 ];
 function skinPal(id){const s=SKINS.find(s=>s.id===id);return s?s.pal:SKINS[0].pal;}
 function buildBallTexture(pal){
@@ -376,10 +456,19 @@ function box(x,y,z,sx,sy,sz,color,emis,ry,rx){
   drawMesh(CUBE,m,color,emis);
 }
 function ballDraw(x,y,z,roll,r){
+  const mesh=SHAPES[save.shape]||SPHERE;
   let m=mMul(mT(x,y,z),mRX(roll));
   m=mMul(m,mS(r*2,r*2,r*2));
   gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,skinTex[save.skin]||skinTex.cyan);gl.uniform1i(U.uTex,0);
-  drawMesh(SPHERE,m,[1,1,1],0,true);
+  let tint=[1,1,1];
+  const pal=skinPal(save.skin);
+  if(pal.rainbow){const h=(G.t*0.4)%1;tint=hsl2rgb(h,1,0.65);}
+  drawMesh(mesh,m,tint,pal.rainbow?0.25:0,true);
+}
+function hsl2rgb(h,s,l){
+  const a=s*Math.min(l,1-l);
+  const f=n=>{const k=(n+h*12)%12;return l-a*Math.max(-1,Math.min(k-3,9-k,1));};
+  return [f(0),f(8),f(4)];
 }
 
 /* ===== level generation ===== */
@@ -438,9 +527,12 @@ let save;
 try{save=JSON.parse(localStorage.getItem(SAVE_KEY))||{};}catch(e){save={};}
 save.stars=save.stars||{}; save.coins=save.coins||0;
 save.ownedSkins=save.ownedSkins||['cyan']; save.skin=save.skin||'cyan';
+save.ownedShapes=save.ownedShapes||['sphere']; save.shape=save.shape||'sphere';
 // migrate old 和風 skin ids to neon defaults
 if(!SKINS.find(s=>s.id===save.skin)){save.skin='cyan';}
 save.ownedSkins=save.ownedSkins.filter(id=>SKINS.find(s=>s.id===id));if(!save.ownedSkins.includes('cyan'))save.ownedSkins.unshift('cyan');
+if(!SHAPE_CATALOG.find(s=>s.id===save.shape)){save.shape='sphere';}
+save.ownedShapes=save.ownedShapes.filter(id=>SHAPE_CATALOG.find(s=>s.id===id));if(!save.ownedShapes.includes('sphere'))save.ownedShapes.unshift('sphere');
 function persist(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));}catch(e){}}
 window.save=save;window.persist=persist; // debug handle
 refreshTitleImage();
@@ -771,36 +863,76 @@ function buildLevels(){
 }
 function toLevels(){buildLevels();showScreen('scrLevels');document.getElementById('hud').classList.add('hidden');G.mode='menu';stopRoll();}
 
+let shopTab='color';
+function shapePreviewDataURL(shapeId,pal){
+  const S=120,c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d');
+  x.fillStyle='rgba(0,0,0,0)';x.clearRect(0,0,S,S);
+  const cx=S/2,cy=S/2,rr=S*0.34;
+  x.save();x.translate(cx,cy);
+  x.shadowColor=pal.glow;x.shadowBlur=16;
+  x.strokeStyle=pal.grid;x.fillStyle=pal.base;x.lineWidth=3;
+  const poly=(pts)=>{x.beginPath();pts.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.closePath();x.fill();x.stroke();};
+  if(shapeId==='cube'){
+    const d=rr*0.82;
+    poly([[-d,-d*0.6],[d*0.4,-d],[d,-d*0.4],[-d*0.4,d*0.2]]); // top face
+    poly([[-d,-d*0.6],[-d*0.4,d*0.2],[-d*0.4,d],[-d,d*0.2]]); // left
+    poly([[-d*0.4,d*0.2],[d,-d*0.4],[d,d*0.4],[-d*0.4,d]]); // right
+  }else if(shapeId==='diamond'){
+    poly([[0,-rr*1.15],[rr,0],[0,rr*1.15],[-rr,0]]);
+    x.beginPath();x.moveTo(0,-rr*1.15);x.lineTo(0,rr*1.15);x.moveTo(-rr,0);x.lineTo(rr,0);x.stroke();
+  }else if(shapeId==='capsule'){
+    const w=rr*0.62,h=rr*1.05;
+    x.beginPath();x.moveTo(-w,-h+w);x.arc(0,-h+w,w,Math.PI,0);x.lineTo(w,h-w);x.arc(0,h-w,w,0,Math.PI);x.closePath();x.fill();x.stroke();
+  }else if(shapeId==='gem'){
+    const pts=[];for(let i=0;i<8;i++){const a=i/8*Math.PI*2;const rad=rr*(i%2?0.82:1.05);pts.push([Math.cos(a)*rad,Math.sin(a)*rad]);}
+    poly(pts);
+  }else{ // sphere
+    x.beginPath();x.arc(0,0,rr,0,7);x.fill();x.stroke();
+    x.beginPath();x.ellipse(0,0,rr,rr*0.4,0,0,7);x.stroke();
+    x.beginPath();x.ellipse(0,0,rr*0.4,rr,0,0,7);x.stroke();
+  }
+  x.restore();
+  return c.toDataURL();
+}
 function buildShop(){
   document.getElementById('shopCoins').textContent=save.coins;
+  document.getElementById('tabColor').className='ghost tab'+(shopTab==='color'?' active':'');
+  document.getElementById('tabShape').className='ghost tab'+(shopTab==='shape'?' active':'');
   const grid=document.getElementById('shopgrid');grid.innerHTML='';
-  for(const s of SKINS){
-    const owned=save.ownedSkins.includes(s.id);
-    const equipped=save.skin===s.id;
+  const pal=skinPal(save.skin);
+  const items=shopTab==='color'?SKINS:SHAPE_CATALOG;
+  for(const s of items){
+    const isColor=shopTab==='color';
+    const owned=isColor?save.ownedSkins.includes(s.id):save.ownedShapes.includes(s.id);
+    const equipped=isColor?save.skin===s.id:save.shape===s.id;
     const card=document.createElement('div');
     card.className='skincard'+(equipped?' equipped':'');
-    const img=document.createElement('img');img.src=titleImageDataURL(s.pal);img.alt=s.name;
+    const img=document.createElement('img');
+    img.src=isColor?titleImageDataURL(s.pal):shapePreviewDataURL(s.id,pal);
+    img.alt=s.name;
     const nm=document.createElement('div');nm.className='nm';nm.textContent=s.name;
     card.appendChild(img);card.appendChild(nm);
     const btn=document.createElement('button');
     if(owned){
-      if(equipped){btn.textContent='そうびちゅう';btn.className='ghost';btn.disabled=true;}
+      if(equipped){btn.textContent='EQUIPPED';btn.className='ghost';btn.disabled=true;}
       else{
-        btn.textContent='そうびする';
-        btn.onclick=()=>{sfx('tap');save.skin=s.id;persist();refreshTitleImage();buildShop();};
+        btn.textContent='EQUIP';
+        btn.onclick=()=>{sfx('tap');if(isColor){save.skin=s.id;}else{save.shape=s.id;}persist();refreshTitleImage();buildShop();};
       }
     }else{
       const cost=document.createElement('div');cost.className='cost';
       cost.innerHTML='<span class="koban"></span>'+s.cost;
       card.appendChild(cost);
       const afford=save.coins>=s.cost;
-      btn.textContent='こうにゅう';
+      btn.textContent='BUY';
       btn.className=afford?'':'ghost';
       btn.disabled=!afford;
       btn.onclick=()=>{
         if(save.coins<s.cost)return;
-        save.coins-=s.cost;save.ownedSkins.push(s.id);save.skin=s.id;persist();
-        sfx('clear');refreshTitleImage();buildShop();buildLevels();
+        save.coins-=s.cost;
+        if(isColor){save.ownedSkins.push(s.id);save.skin=s.id;}
+        else{save.ownedShapes.push(s.id);save.shape=s.id;}
+        persist();sfx('clear');refreshTitleImage();buildShop();buildLevels();
       };
     }
     card.appendChild(btn);
@@ -811,7 +943,9 @@ function toShop(){buildShop();showScreen('scrShop');document.getElementById('hud
 
 document.getElementById('btnStart').onclick=()=>{audio();sfx('tap');toLevels();};
 document.getElementById('btnBackTitle').onclick=()=>{sfx('tap');showScreen('scrTitle');};
-document.getElementById('btnShop').onclick=()=>{sfx('tap');toShop();};
+document.getElementById('btnShop').onclick=()=>{sfx('tap');shopTab='color';toShop();};
+document.getElementById('tabColor').onclick=()=>{sfx('tap');shopTab='color';buildShop();};
+document.getElementById('tabShape').onclick=()=>{sfx('tap');shopTab='shape';buildShop();};
 document.getElementById('btnShopBack').onclick=()=>{sfx('tap');toLevels();};
 document.getElementById('pauseBtn').onclick=()=>{if(G.mode!=='play')return;sfx('tap');G.mode='pause';stopRoll();showScreen('scrPause');};
 document.getElementById('btnResume').onclick=()=>{sfx('tap');showScreen(null);G.mode='play';startRoll();};
