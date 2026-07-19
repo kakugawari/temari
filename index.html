@@ -8,110 +8,112 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="てまり">
-<meta name="theme-color" content="#101a33">
+<meta name="theme-color" content="#080614">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-180.png">
 <style>
 :root{
-  --ai:#101a33; --ai2:#1b2a4a; --kinari:#f2e8d5; --shu:#b5432e; --shu2:#d9603f;
-  --kin:#d4a93c; --sumi:#0a0f20;
+  --bg:#080614; --bg2:#140a2e; --ink:#eaf6ff; --cyan:#22e0ff; --mag:#ff2fb0;
+  --lime:#9dff3c; --violet:#7c4dff; --deep:#04030c;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;}
-html,body{width:100%;height:100%;overflow:hidden;background:var(--ai);font-family:"Hiragino Maru Gothic ProN","BIZ UDGothic","Yu Gothic",sans-serif;color:var(--kinari);touch-action:none;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:"Helvetica Neue","Arial",system-ui,sans-serif;color:var(--ink);touch-action:none;}
 #gl{position:fixed;inset:0;width:100%;height:100%;display:block;}
-.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(120% 90% at 50% 0%,var(--ai2) 0%,var(--ai) 55%,var(--sumi) 100%);z-index:20;padding:24px;padding-top:calc(24px + env(safe-area-inset-top));padding-bottom:calc(24px + env(safe-area-inset-bottom));}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(130% 100% at 50% 0%,var(--bg2) 0%,var(--bg) 55%,var(--deep) 100%);z-index:20;padding:24px;padding-top:calc(24px + env(safe-area-inset-top));padding-bottom:calc(24px + env(safe-area-inset-bottom));}
+.screen::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(34,224,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,47,176,.05) 1px,transparent 1px);background-size:38px 38px;-webkit-mask-image:linear-gradient(to bottom,transparent,#000 60%);mask-image:linear-gradient(to bottom,transparent,#000 60%);pointer-events:none;}
 .hidden{display:none !important;}
-h1.title{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;font-size:clamp(34px,10vw,56px);letter-spacing:0.14em;font-weight:600;text-shadow:0 2px 14px rgba(0,0,0,.5);}
-.sub{font-size:14px;opacity:.85;letter-spacing:.12em;}
-.temari-img{width:min(42vw,180px);height:min(42vw,180px);border-radius:50%;box-shadow:0 10px 40px rgba(0,0,0,.55),0 0 0 6px rgba(212,169,60,.18);animation:bob 3.2s ease-in-out infinite;}
+h1.title{font-family:"Arial Black","Helvetica Neue",sans-serif;font-size:clamp(34px,10vw,58px);letter-spacing:0.04em;font-weight:900;font-style:italic;color:#fff;text-shadow:0 0 8px var(--cyan),0 0 22px rgba(34,224,255,.6),3px 3px 0 var(--mag);}
+.sub{font-size:13px;opacity:.9;letter-spacing:.28em;text-transform:uppercase;color:var(--cyan);}
+.temari-img{width:min(42vw,180px);height:min(42vw,180px);border-radius:50%;box-shadow:0 0 34px rgba(34,224,255,.55),0 0 0 2px rgba(34,224,255,.5),inset 0 0 20px rgba(255,47,176,.3);animation:bob 3.2s ease-in-out infinite;}
 @keyframes bob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-10px) rotate(4deg)}}
-button{font-family:inherit;color:var(--kinari);background:linear-gradient(180deg,var(--shu2),var(--shu));border:none;border-radius:14px;padding:14px 34px;font-size:18px;letter-spacing:.18em;box-shadow:0 4px 0 #7c2c1d,0 8px 18px rgba(0,0,0,.4);cursor:pointer;}
-button:active{transform:translateY(3px);box-shadow:0 1px 0 #7c2c1d,0 4px 10px rgba(0,0,0,.4);}
-button.ghost{background:rgba(242,232,213,.08);box-shadow:inset 0 0 0 1.5px rgba(242,232,213,.35);}
+button{position:relative;font-family:inherit;font-weight:800;color:#04030c;background:linear-gradient(180deg,var(--cyan),#0bb8e6);border:none;border-radius:12px;padding:14px 34px;font-size:17px;letter-spacing:.16em;text-transform:uppercase;box-shadow:0 0 18px rgba(34,224,255,.6),0 6px 16px rgba(0,0,0,.5);cursor:pointer;}
+button:active{transform:translateY(2px);filter:brightness(1.1);}
+button.ghost{color:var(--cyan);background:rgba(34,224,255,.06);box-shadow:inset 0 0 0 1.5px var(--cyan),0 0 14px rgba(34,224,255,.25);}
 button.ghost:active{transform:translateY(2px);}
 .lvgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:min(86vw,360px);}
-.lvbtn{position:relative;background:rgba(242,232,213,.06);border:1.5px solid rgba(212,169,60,.45);border-radius:14px;padding:14px 4px 10px;font-size:16px;letter-spacing:.1em;box-shadow:none;display:flex;flex-direction:column;align-items:center;gap:4px;}
-.lvbtn .st{font-size:12px;color:var(--kin);letter-spacing:.05em;min-height:14px;}
-.lvbtn.locked{opacity:.32;border-color:rgba(242,232,213,.2);}
+.lvbtn{position:relative;background:rgba(124,77,255,.1);border:1.5px solid var(--violet);border-radius:12px;padding:14px 4px 10px;font-size:16px;font-weight:700;letter-spacing:.06em;box-shadow:0 0 12px rgba(124,77,255,.35);display:flex;flex-direction:column;align-items:center;gap:4px;color:#fff;}
+.lvbtn .st{font-size:12px;color:var(--lime);letter-spacing:.05em;min-height:14px;text-shadow:0 0 8px rgba(157,255,60,.7);}
+.lvbtn.locked{opacity:.3;border-color:rgba(234,246,255,.2);box-shadow:none;}
 .lvbtn:active{transform:scale(.95);}
 #hud{position:fixed;left:0;right:0;top:0;z-index:10;padding:calc(10px + env(safe-area-inset-top)) 14px 8px;display:flex;align-items:center;gap:12px;pointer-events:none;}
-#hud .pill{background:rgba(10,15,32,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border-radius:999px;padding:6px 14px;font-size:14px;letter-spacing:.06em;display:flex;align-items:center;gap:7px;}
-.koban{display:inline-block;width:13px;height:18px;background:linear-gradient(180deg,#ecd27c,#c79a2e);border-radius:50%/40%;box-shadow:inset 0 0 0 1.5px rgba(120,84,10,.6);}
-#prog{flex:1;height:6px;border-radius:99px;background:rgba(242,232,213,.15);overflow:hidden;}
-#progFill{height:100%;width:0%;background:linear-gradient(90deg,var(--kin),#f0d98a);border-radius:99px;transition:width .2s linear;}
-#pauseBtn{pointer-events:auto;background:rgba(10,15,32,.55);box-shadow:none;border-radius:999px;padding:6px 13px;font-size:15px;letter-spacing:0;}
-#toast{position:fixed;left:50%;top:34%;transform:translate(-50%,-50%);z-index:15;font-family:"Hiragino Mincho ProN","Yu Mincho",serif;font-size:clamp(26px,7vw,40px);letter-spacing:.2em;color:var(--kinari);text-shadow:0 2px 16px rgba(0,0,0,.7);opacity:0;pointer-events:none;transition:opacity .3s;}
-.stars{font-size:clamp(30px,9vw,44px);letter-spacing:.3em;color:var(--kin);text-shadow:0 0 18px rgba(212,169,60,.55);}
-.stars .off{opacity:.22;}
-.resultBox{display:flex;flex-direction:column;align-items:center;gap:14px;background:rgba(10,15,32,.4);border:1.5px solid rgba(212,169,60,.4);border-radius:20px;padding:26px 34px;}
+#hud .pill{background:rgba(8,6,20,.6);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(34,224,255,.4);border-radius:999px;padding:6px 14px;font-size:14px;font-weight:700;letter-spacing:.06em;display:flex;align-items:center;gap:7px;box-shadow:0 0 12px rgba(34,224,255,.25);}
+.koban{display:inline-block;width:14px;height:14px;background:conic-gradient(from 0deg,var(--cyan),var(--mag),var(--lime),var(--cyan));border-radius:50%;box-shadow:0 0 8px rgba(34,224,255,.8);}
+#prog{flex:1;height:6px;border-radius:99px;background:rgba(234,246,255,.12);overflow:hidden;box-shadow:inset 0 0 4px rgba(0,0,0,.5);}
+#progFill{height:100%;width:0%;background:linear-gradient(90deg,var(--mag),var(--cyan));border-radius:99px;box-shadow:0 0 10px var(--cyan);transition:width .2s linear;}
+#pauseBtn{pointer-events:auto;color:var(--cyan);background:rgba(8,6,20,.6);border:1px solid rgba(34,224,255,.4);box-shadow:0 0 10px rgba(34,224,255,.2);border-radius:999px;padding:6px 13px;font-size:15px;letter-spacing:0;}
+#toast{position:fixed;left:50%;top:34%;transform:translate(-50%,-50%);z-index:15;font-family:"Arial Black",sans-serif;font-style:italic;font-size:clamp(26px,7vw,42px);letter-spacing:.06em;color:#fff;text-shadow:0 0 12px var(--mag),0 0 26px rgba(255,47,176,.7);opacity:0;pointer-events:none;transition:opacity .3s;}
+.stars{font-size:clamp(30px,9vw,44px);letter-spacing:.3em;color:var(--lime);text-shadow:0 0 18px rgba(157,255,60,.8);}
+.stars .off{opacity:.2;}
+.resultBox{display:flex;flex-direction:column;align-items:center;gap:14px;background:rgba(8,6,20,.5);border:1.5px solid var(--cyan);border-radius:18px;padding:26px 34px;box-shadow:0 0 26px rgba(34,224,255,.35),inset 0 0 20px rgba(124,77,255,.15);}
 .row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
 .small{font-size:12px;opacity:.6;letter-spacing:.1em;}
 .shopgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px;width:min(88vw,380px);max-height:52vh;overflow-y:auto;padding:4px 2px;}
-.skincard{background:rgba(242,232,213,.06);border:1.5px solid rgba(212,169,60,.35);border-radius:16px;padding:12px 8px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;}
-.skincard.equipped{border-color:#d4a93c;box-shadow:0 0 0 2px rgba(212,169,60,.5) inset;}
-.skincard img{width:62px;height:62px;border-radius:50%;box-shadow:0 4px 14px rgba(0,0,0,.45);}
-.skincard .nm{font-size:13px;letter-spacing:.08em;}
-.skincard .cost{font-size:12px;color:var(--kin);display:flex;align-items:center;gap:4px;}
-.skincard .cost .koban{width:10px;height:14px;}
-.skincard button{padding:7px 16px;font-size:13px;letter-spacing:.06em;box-shadow:none;}
+.skincard{background:rgba(124,77,255,.1);border:1.5px solid rgba(124,77,255,.5);border-radius:16px;padding:12px 8px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 0 12px rgba(124,77,255,.25);}
+.skincard.equipped{border-color:var(--cyan);box-shadow:0 0 0 2px var(--cyan) inset,0 0 18px rgba(34,224,255,.5);}
+.skincard img{width:62px;height:62px;border-radius:50%;box-shadow:0 0 16px rgba(34,224,255,.4);}
+.skincard .nm{font-size:13px;font-weight:700;letter-spacing:.06em;}
+.skincard .cost{font-size:12px;color:var(--lime);display:flex;align-items:center;gap:4px;}
+.skincard .cost .koban{width:11px;height:11px;}
+.skincard button{padding:7px 16px;font-size:13px;letter-spacing:.06em;}
 .skincard button.ghost{padding:6.5px 15px;}
-#tip{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;font-size:13px;opacity:0;letter-spacing:.15em;z-index:10;pointer-events:none;transition:opacity .4s;text-shadow:0 1px 6px rgba(0,0,0,.8);}
+#tip{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;font-size:12px;opacity:0;letter-spacing:.24em;text-transform:uppercase;color:var(--cyan);z-index:10;pointer-events:none;transition:opacity .4s;text-shadow:0 0 10px rgba(34,224,255,.7);}
 </style>
 </head>
+
 <body>
 <canvas id="gl"></canvas>
 
 <div id="hud" class="hidden">
-  <div class="pill" id="lvLabel">その1</div>
+  <div class="pill" id="lvLabel">STAGE 1</div>
   <div id="prog"><div id="progFill"></div></div>
   <div class="pill"><span class="koban"></span><span id="coinLabel">0/0</span></div>
   <button id="pauseBtn">❚❚</button>
 </div>
 <div id="toast"></div>
-<div id="tip">よこスライドで いどう・うえで かそく</div>
+<div id="tip">SLIDE to move &nbsp;/&nbsp; UP to boost</div>
 
 <div id="scrTitle" class="screen">
   <img id="temariImg" class="temari-img" alt="てまり">
-  <h1 class="title">てまりころりん</h1>
-  <div class="sub">ゆびで まりを ころがして ゴールへ</div>
-  <button id="btnStart">はじめる</button>
-  <div class="small">v8</div>
+  <h1 class="title">NEON&nbsp;ROLL</h1>
+  <div class="sub">Slide &amp; Boost to the Goal</div>
+  <button id="btnStart">START</button>
+  <div class="small">v9</div>
 </div>
 
 <div id="scrLevels" class="screen hidden">
-  <h1 class="title" style="font-size:clamp(24px,7vw,36px)">だんをえらぶ</h1>
+  <h1 class="title" style="font-size:clamp(24px,7vw,36px)">SELECT STAGE</h1>
   <div class="lvgrid" id="lvgrid"></div>
-  <div class="pill" style="background:rgba(10,15,32,.55);border-radius:999px;padding:6px 16px;display:flex;gap:8px;align-items:center;"><span class="koban"></span><span id="totalCoins">0</span><span class="small">あつめた小判</span></div>
+  <div class="pill" style="background:rgba(8,6,20,.6);border-radius:999px;padding:6px 16px;display:flex;gap:8px;align-items:center;"><span class="koban"></span><span id="totalCoins">0</span><span class="small">CREDITS</span></div>
   <div class="row">
-    <button class="ghost" id="btnShop">まりや</button>
-    <button class="ghost" id="btnBackTitle">もどる</button>
+    <button class="ghost" id="btnShop">GARAGE</button>
+    <button class="ghost" id="btnBackTitle">BACK</button>
   </div>
 </div>
 
 <div id="scrShop" class="screen hidden">
-  <h1 class="title" style="font-size:clamp(24px,7vw,36px)">まりや</h1>
-  <div class="pill" style="background:rgba(10,15,32,.55);border-radius:999px;padding:6px 16px;display:flex;gap:8px;align-items:center;"><span class="koban"></span><span id="shopCoins">0</span><span class="small">もちだま</span></div>
+  <h1 class="title" style="font-size:clamp(24px,7vw,36px)">GARAGE</h1>
+  <div class="pill" style="background:rgba(8,6,20,.6);border-radius:999px;padding:6px 16px;display:flex;gap:8px;align-items:center;"><span class="koban"></span><span id="shopCoins">0</span><span class="small">CREDITS</span></div>
   <div class="shopgrid" id="shopgrid"></div>
-  <button class="ghost" id="btnShopBack">もどる</button>
+  <button class="ghost" id="btnShopBack">BACK</button>
 </div>
 
-<div id="scrPause" class="screen hidden" style="background:rgba(10,15,32,.72);">
-  <h1 class="title" style="font-size:28px;">ひとやすみ</h1>
-  <button id="btnResume">つづける</button>
-  <button class="ghost" id="btnRetry">やりなおす</button>
-  <button class="ghost" id="btnQuit">だんえらびへ</button>
+<div id="scrPause" class="screen hidden" style="background:rgba(8,6,20,.8);">
+  <h1 class="title" style="font-size:28px;">PAUSED</h1>
+  <button id="btnResume">RESUME</button>
+  <button class="ghost" id="btnRetry">RETRY</button>
+  <button class="ghost" id="btnQuit">STAGES</button>
 </div>
 
-<div id="scrClear" class="screen hidden" style="background:rgba(10,15,32,.72);">
+<div id="scrClear" class="screen hidden" style="background:rgba(8,6,20,.8);">
   <div class="resultBox">
-    <h1 class="title" style="font-size:clamp(26px,8vw,40px);">ゴール！</h1>
+    <h1 class="title" style="font-size:clamp(26px,8vw,40px);">CLEAR!</h1>
     <div class="stars" id="clearStars">★★★</div>
     <div><span class="koban"></span> <span id="clearCoins">0/0</span></div>
     <div class="row">
-      <button id="btnNext">つぎへ</button>
-      <button class="ghost" id="btnAgain">もういちど</button>
+      <button id="btnNext">NEXT</button>
+      <button class="ghost" id="btnAgain">RETRY</button>
     </div>
-    <button class="ghost" id="btnClearQuit">だんえらびへ</button>
+    <button class="ghost" id="btnClearQuit">STAGES</button>
   </div>
 </div>
 
@@ -194,16 +196,37 @@ const SKY_FS=`#version 300 es
 precision highp float; in vec2 vP; uniform float uT; uniform float uAsp; out vec4 o;
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 void main(){
-  float h=vP.y*0.5+0.5;
-  vec3 c=mix(vec3(0.13,0.22,0.40),vec3(0.045,0.07,0.16),pow(h,0.8));
-  vec2 sp=floor(vec2(vP.x*uAsp,vP.y)*90.0);
-  float st=step(0.995,hash(sp));
-  float tw=0.6+0.4*sin(uT*2.0+hash(sp.yx)*40.0);
-  c+=vec3(0.9,0.9,0.8)*st*tw*smoothstep(0.1,0.6,h);
-  vec2 mp=vec2(vP.x*uAsp,vP.y)-vec2(-uAsp*0.52,0.62);
-  float md=length(mp);
-  c+=vec3(0.95,0.88,0.62)*smoothstep(0.16,0.10,md)*0.9;
-  c+=vec3(0.85,0.75,0.45)*smoothstep(0.42,0.10,md)*0.12;
+  float h=vP.y*0.5+0.5;                       // 0 bottom .. 1 top
+  // deep synthwave gradient: magenta horizon -> violet -> near-black top
+  vec3 top=vec3(0.03,0.02,0.09);
+  vec3 mid=vec3(0.28,0.05,0.35);
+  vec3 hor=vec3(0.95,0.18,0.55);
+  vec3 c = h>0.5 ? mix(mid,top,(h-0.5)/0.5) : mix(hor,mid,h/0.5);
+  vec2 uv=vec2(vP.x*uAsp,vP.y);
+  // neon sun above the horizon
+  vec2 sun=uv-vec2(0.0,0.28);
+  float sd=length(vec2(sun.x,sun.y*1.05));
+  vec3 sunC=mix(vec3(1.0,0.95,0.35),vec3(1.0,0.25,0.6),clamp((sun.y+0.35)/0.7,0.0,1.0));
+  float disc=smoothstep(0.36,0.34,sd);
+  // horizontal scanline gaps across the sun (retro sun)
+  float stripes=smoothstep(0.0,0.02,sin(uv.y*70.0)*0.5+0.5- (0.65-clamp((0.3-uv.y)/0.3,0.0,1.0)*0.65));
+  disc*= (uv.y>0.02)?1.0:stripes;
+  c=mix(c,sunC,disc);
+  c+=sunC*smoothstep(0.66,0.34,sd)*0.30;      // glow halo
+  // stars in the upper sky
+  vec2 sp=floor(uv*90.0);
+  float star=step(0.994,hash(sp))*smoothstep(0.35,0.8,h);
+  c+=vec3(0.8,0.9,1.0)*star*(0.6+0.4*sin(uT*3.0+hash(sp.yx)*40.0));
+  // perspective neon grid on the ground (lower part of screen)
+  if(vP.y<0.0){
+    float persp=1.0/(-vP.y+0.02);
+    float gz=uv.y*persp*1.2 - uT*2.2;
+    float gx=uv.x*persp*1.2;
+    float lz=smoothstep(0.9,1.0,abs(fract(gz)-0.5)*2.0);
+    float lx=smoothstep(0.9,1.0,abs(fract(gx)-0.5)*2.0);
+    float grid=max(lz,lx)*smoothstep(0.0,-0.55,vP.y);
+    c=mix(c,vec3(0.15,0.95,1.0),grid*0.8);
+  }
   o=vec4(c,1.0);
 }`;
 const skyProg=makeProg(SKY_VS,SKY_FS);
@@ -262,48 +285,43 @@ function sphereMesh(st,sl){
 const CUBE=cubeMesh();
 const SPHERE=sphereMesh(16,24);
 
-/* ===== temari texture (palette-driven, so it can be reused per ball skin) ===== */
+/* ===== ball texture (palette-driven neon orb) ===== */
 function drawTemari(ctx,S,pal){
+  // dark shell with a soft vertical sheen
   ctx.fillStyle=pal.base;ctx.fillRect(0,0,S,S);
   const g=ctx.createLinearGradient(0,0,0,S);
-  g.addColorStop(0,'rgba(0,0,0,0.38)');g.addColorStop(0.25,'rgba(0,0,0,0)');
-  g.addColorStop(0.75,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,0.38)');
+  g.addColorStop(0,'rgba(255,255,255,0.10)');g.addColorStop(0.5,'rgba(0,0,0,0)');
+  g.addColorStop(1,'rgba(0,0,0,0.5)');
   ctx.fillStyle=g;ctx.fillRect(0,0,S,S);
-  // center obi band
-  ctx.fillStyle=pal.obi;ctx.fillRect(0,S*0.42,S,S*0.16);
-  ctx.fillStyle=pal.obiEdge;
-  ctx.fillRect(0,S*0.415,S,S*0.012);ctx.fillRect(0,S*0.573,S,S*0.012);
-  // kagari zigzag threads (periodic in x)
-  const zig=(cy,amp,k,color,w,phase)=>{
-    ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineCap='round';ctx.beginPath();
-    for(let x=-8;x<=S+8;x+=4){
-      const t=((x/S)*k+phase)%1;
-      const tri=Math.abs(t*2-1)*2-1;
-      const y=cy+tri*amp;
-      x<0?ctx.moveTo(x,y):ctx.lineTo(x,y);
-    }
-    ctx.stroke();
-  };
-  zig(S*0.24,S*0.09,6,pal.threadA,S*0.014,0);
-  zig(S*0.24,S*0.09,6,pal.threadA2,S*0.007,0.08);
-  zig(S*0.76,S*0.09,6,pal.threadB,S*0.014,0.5/6);
-  zig(S*0.76,S*0.09,6,pal.threadB2,S*0.007,0.5/6+0.08);
-  zig(S*0.5,S*0.055,8,pal.center,S*0.009,0);
-  // stitch dots
-  ctx.fillStyle=pal.dot;
-  for(let i=0;i<48;i++){
-    const x=(i/48)*S,y=S*(0.42+0.16*((i%2)?0.18:0.82));
-    ctx.beginPath();ctx.arc(x,y,S*0.005,0,7);ctx.fill();
+  // glowing longitude lines (vertical) — u wraps around the sphere
+  ctx.lineCap='round';
+  ctx.shadowColor=pal.glow;ctx.shadowBlur=S*0.02;
+  ctx.strokeStyle=pal.grid;ctx.lineWidth=S*0.006;
+  for(let i=0;i<8;i++){const x=(i/8)*S;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,S);ctx.stroke();}
+  // latitude lines (horizontal)
+  for(let j=1;j<8;j++){const y=(j/8)*S;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(S,y);ctx.stroke();}
+  // bright equator band
+  ctx.shadowBlur=S*0.05;
+  ctx.strokeStyle=pal.band;ctx.lineWidth=S*0.03;
+  ctx.beginPath();ctx.moveTo(0,S*0.5);ctx.lineTo(S,S*0.5);ctx.stroke();
+  ctx.strokeStyle=pal.band2;ctx.lineWidth=S*0.012;
+  ctx.beginPath();ctx.moveTo(0,S*0.5);ctx.lineTo(S,S*0.5);ctx.stroke();
+  // glowing node dots at grid crossings
+  ctx.shadowBlur=S*0.03;ctx.fillStyle=pal.node;
+  for(let i=0;i<8;i++)for(let j=1;j<8;j++){
+    const x=(i/8)*S,y=(j/8)*S;
+    ctx.beginPath();ctx.arc(x,y,S*0.012,0,7);ctx.fill();
   }
+  ctx.shadowBlur=0;
 }
 
-/* ===== ball skins (unlocked with 小判/koban collected in-game) ===== */
+/* ===== ball skins (unlocked with credits collected in-game) ===== */
 const SKINS=[
-  {id:'shu',name:'しゅいろ',cost:0,pal:{base:'#a83232',obi:'#233a63',obiEdge:'#d4a93c',threadA:'#f2e8d5',threadA2:'#4e7d5b',threadB:'#f2e8d5',threadB2:'#d98aa0',center:'#e7c76a',dot:'#f2e8d5'}},
-  {id:'kin',name:'こがね',cost:25,pal:{base:'#c79a3a',obi:'#7c2c1d',obiEdge:'#f2e8d5',threadA:'#fff6df',threadA2:'#8a4b2a',threadB:'#fff6df',threadB2:'#3f5f8a',center:'#f2e8d5',dot:'#7c2c1d'}},
-  {id:'sakura',name:'さくら',cost:55,pal:{base:'#e58aa0',obi:'#f2e8d5',obiEdge:'#b5432e',threadA:'#ffffff',threadA2:'#4e7d5b',threadB:'#ffffff',threadB2:'#d4a93c',center:'#b5432e',dot:'#ffffff'}},
-  {id:'ai',name:'あいぞめ',cost:90,pal:{base:'#1f3a63',obi:'#f2e8d5',obiEdge:'#b5432e',threadA:'#f2e8d5',threadA2:'#d4a93c',threadB:'#f2e8d5',threadB2:'#8a4b2a',center:'#d4a93c',dot:'#f2e8d5'}},
-  {id:'kuro',name:'まきえ',cost:150,pal:{base:'#141414',obi:'#141414',obiEdge:'#d4a93c',threadA:'#d4a93c',threadA2:'#b5432e',threadB:'#d4a93c',threadB2:'#b5432e',center:'#d4a93c',dot:'#d4a93c'}}
+  {id:'cyan',name:'CYBER',cost:0,pal:{base:'#0a1230',grid:'#22e0ff',glow:'#22e0ff',band:'#66f2ff',band2:'#ffffff',node:'#aef6ff'}},
+  {id:'mag',name:'PLASMA',cost:25,pal:{base:'#2a0620',grid:'#ff2fb0',glow:'#ff2fb0',band:'#ff77cf',band2:'#ffffff',node:'#ffc0ec'}},
+  {id:'lime',name:'MATRIX',cost:55,pal:{base:'#08210c',grid:'#9dff3c',glow:'#9dff3c',band:'#d0ff8a',band2:'#ffffff',node:'#e6ffbf'}},
+  {id:'violet',name:'VAPOR',cost:90,pal:{base:'#14082e',grid:'#b388ff',glow:'#7c4dff',band:'#22e0ff',band2:'#ff2fb0',node:'#e0d0ff'}},
+  {id:'gold',name:'AURUM',cost:150,pal:{base:'#241704',grid:'#ffcf3c',glow:'#ffb300',band:'#fff0a8',band2:'#ffffff',node:'#fff3c0'}}
 ];
 function skinPal(id){const s=SKINS.find(s=>s.id===id);return s?s.pal:SKINS[0].pal;}
 function buildBallTexture(pal){
@@ -360,7 +378,7 @@ function box(x,y,z,sx,sy,sz,color,emis,ry,rx){
 function ballDraw(x,y,z,roll,r){
   let m=mMul(mT(x,y,z),mRX(roll));
   m=mMul(m,mS(r*2,r*2,r*2));
-  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,skinTex[save.skin]||skinTex.shu);gl.uniform1i(U.uTex,0);
+  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,skinTex[save.skin]||skinTex.cyan);gl.uniform1i(U.uTex,0);
   drawMesh(SPHERE,m,[1,1,1],0,true);
 }
 
@@ -419,7 +437,10 @@ const SAVE_KEY='temari-korokoro-v1';
 let save;
 try{save=JSON.parse(localStorage.getItem(SAVE_KEY))||{};}catch(e){save={};}
 save.stars=save.stars||{}; save.coins=save.coins||0;
-save.ownedSkins=save.ownedSkins||['shu']; save.skin=save.skin||'shu';
+save.ownedSkins=save.ownedSkins||['cyan']; save.skin=save.skin||'cyan';
+// migrate old 和風 skin ids to neon defaults
+if(!SKINS.find(s=>s.id===save.skin)){save.skin='cyan';}
+save.ownedSkins=save.ownedSkins.filter(id=>SKINS.find(s=>s.id===id));if(!save.ownedSkins.includes('cyan'))save.ownedSkins.unshift('cyan');
 function persist(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));}catch(e){}}
 window.save=save;window.persist=persist; // debug handle
 refreshTitleImage();
@@ -440,7 +461,7 @@ function startLevel(n){
   G.mode='play';
   showScreen(null);
   document.getElementById('hud').classList.remove('hidden');
-  document.getElementById('lvLabel').textContent='その'+n;
+  document.getElementById('lvLabel').textContent='STAGE '+n;
   updateHUD();
   if(n===1&&!save.stars[1]){tip(true);setTimeout(()=>tip(false),3500);}
   startRoll();
@@ -470,7 +491,7 @@ function miss(){
   G.misses++; G.shake=0.5;
   sfx('hit');
   G.x=0;G.tx=0;G.lane=1;G.y=R;G.z=Math.max(G.cpZ,DZ*2);G.vy=0;G.grounded=true;G.inv=1.6;
-  toast('もういっかい！');
+  toast('CRASH!');
 }
 function toast(s){
   const el=document.getElementById('toast');
@@ -553,10 +574,10 @@ function updateProg(){
 
 /* ===== render ===== */
 const COL={
-  shu:[0.66,0.26,0.17], shuD:[0.5,0.19,0.13], kin:[0.83,0.66,0.24],
-  kinari:[0.9,0.87,0.78], ai:[0.16,0.23,0.4], sumi:[0.1,0.09,0.1],
-  wood:[0.38,0.25,0.16], sakura:[0.93,0.6,0.68], lantern:[1.0,0.82,0.5],
-  green:[0.3,0.5,0.36]
+  shu:[0.16,0.10,0.34], shuD:[0.10,0.06,0.24], kin:[0.13,0.88,1.0],
+  kinari:[0.9,0.95,1.0], ai:[0.49,0.30,1.0], sumi:[0.02,0.02,0.06],
+  wood:[0.20,0.14,0.32], sakura:[1.0,0.18,0.69], lantern:[1.0,0.85,0.3],
+  green:[0.62,1.0,0.24]
 };
 const petals=[];
 for(let i=0;i<36;i++)petals.push({x:(Math.random()-0.5)*16,y:Math.random()*9,z:Math.random()*40,s:0.7+Math.random()*0.9,ph:Math.random()*7});
@@ -585,7 +606,7 @@ function render(now,dt){
   gl.uniform3fv(U.uCam,CAM);
 
   if(G.lv){
-    const ACC=[[0.93,0.5,0.6],[0.95,0.78,0.32],[0.36,0.72,0.52],[0.5,0.62,0.95]]; // 桜・金・緑・浅葱
+    const ACC=[[1.0,0.18,0.69],[0.13,0.88,1.0],[0.62,1.0,0.24],[0.49,0.30,1.0]]; // magenta/cyan/lime/violet
     const zi=Math.round(G.z/DZ);
     for(let k=Math.max(0,zi-6);k<Math.min(G.lv.len,zi+44);k++){
       const r=G.lv.rows[k],rz=k*DZ;
@@ -652,19 +673,19 @@ function render(now,dt){
     }
     ballDraw(G.x,G.y,G.z,G.roll,R);
   }
-  // sakura petals drifting near camera
-  for(const p of petals){
-    p.y-=dt*(0.5+p.s*0.4);
-    p.x+=Math.sin(now/1000+p.ph)*dt*0.5;
-    if(p.y<-1){p.y=8+Math.random()*2;p.x=(Math.random()-0.5)*16;}
+  // neon particle bits floating upward near camera
+  for(let pi=0;pi<petals.length;pi++){
+    const p=petals[pi];
+    p.y+=dt*(0.5+p.s*0.5);
+    p.x+=Math.sin(now/1000+p.ph)*dt*0.4;
+    if(p.y>9){p.y=-1;p.x=(Math.random()-0.5)*16;}
     const wz=G.z-4+p.z%36;
-    let m=mMul(mT(camX+p.x*0.6,p.y,wz),mRY(now/600+p.ph));
-    m=mMul(m,mRX(p.ph));
-    m=mMul(m,mS(0.13*p.s,0.02,0.1*p.s));
-    drawMesh(CUBE,m,COL.sakura,0.35);
+    let m=mMul(mT(camX+p.x*0.6,p.y,wz),mRY(now/500+p.ph));
+    m=mMul(m,mS(0.08*p.s,0.08*p.s,0.08*p.s));
+    drawMesh(CUBE,m,(pi&1)?COL.kin:COL.sakura,0.9);
   }
 }
-COL.shu2=[0.85,0.38,0.25];
+COL.shu2=[1.0,0.30,0.72];
 
 /* ===== audio ===== */
 let AC=null,rollNode=null,rollGain=null;
@@ -742,7 +763,7 @@ function buildLevels(){
     const b=document.createElement('button');
     b.className='lvbtn'+(n>unlocked?' locked':'');
     const st=save.stars[n]||0;
-    b.innerHTML='その'+n+'<span class="st">'+(st?'★'.repeat(st):(n<=unlocked?'—':'🔒'))+'</span>';
+    b.innerHTML='ST '+n+'<span class="st">'+(st?'★'.repeat(st):(n<=unlocked?'—':'🔒'))+'</span>';
     if(n<=unlocked)b.onclick=()=>{sfx('tap');startLevel(n);};
     grid.appendChild(b);
   }
