@@ -1,0 +1,5 @@
+# Generated from index.html for web publishing — the document skeleton tags and the
+# manifest/service-worker references are stripped so the page can be embedded in a host
+# that supplies its own <head>. It is a derived copy of the whole game, so keeping it in
+# version control would mean two copies of index.html silently drifting apart.
+temari-play.html
