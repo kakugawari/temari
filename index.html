@@ -40,7 +40,7 @@ button.ghost:active{transform:translateY(2px);}
 .koban{display:inline-block;width:14px;height:14px;background:conic-gradient(from 0deg,var(--cyan),var(--mag),var(--lime),var(--cyan));border-radius:50%;box-shadow:0 0 8px rgba(34,224,255,.8);}
 #prog{flex:1;height:6px;border-radius:99px;background:rgba(234,246,255,.12);overflow:hidden;box-shadow:inset 0 0 4px rgba(0,0,0,.5);}
 #progFill{height:100%;width:0%;background:linear-gradient(90deg,var(--mag),var(--cyan));border-radius:99px;box-shadow:0 0 10px var(--cyan);transition:width .2s linear;}
-#pauseBtn{pointer-events:auto;color:var(--cyan);background:rgba(8,6,20,.6);border:1px solid rgba(34,224,255,.4);box-shadow:0 0 10px rgba(34,224,255,.2);border-radius:999px;padding:6px 13px;font-size:15px;letter-spacing:0;}
+#pauseBtn,#muteBtn{pointer-events:auto;color:var(--cyan);background:rgba(8,6,20,.6);border:1px solid rgba(34,224,255,.4);box-shadow:0 0 10px rgba(34,224,255,.2);border-radius:999px;padding:6px 13px;font-size:15px;letter-spacing:0;}
 #toast{position:fixed;left:50%;top:34%;transform:translate(-50%,-50%);z-index:15;font-family:"Arial Black",sans-serif;font-style:italic;font-size:clamp(26px,7vw,42px);letter-spacing:.06em;color:#fff;text-shadow:0 0 12px var(--mag),0 0 26px rgba(255,47,176,.7);opacity:0;pointer-events:none;transition:opacity .3s;}
 .stars{font-size:clamp(30px,9vw,44px);letter-spacing:.3em;color:var(--lime);text-shadow:0 0 18px rgba(157,255,60,.8);}
 .stars .off{opacity:.2;}
@@ -59,6 +59,20 @@ button.ghost:active{transform:translateY(2px);}
 .tab{padding:8px 22px;font-size:14px;opacity:.55;}
 .tab.active{opacity:1;background:rgba(34,224,255,.14);box-shadow:inset 0 0 0 1.5px var(--cyan),0 0 16px rgba(34,224,255,.4);}
 #tip{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;font-size:12px;opacity:0;letter-spacing:.24em;text-transform:uppercase;color:var(--cyan);z-index:10;pointer-events:none;transition:opacity .4s;text-shadow:0 0 10px rgba(34,224,255,.7);}
+/* ===== flow HUD: chain counter + boost meter ===== */
+#flow{position:fixed;left:14px;right:14px;top:calc(48px + env(safe-area-inset-top));z-index:10;display:flex;align-items:center;gap:10px;pointer-events:none;}
+#chain{font-family:"Arial Black",sans-serif;font-style:italic;font-size:15px;letter-spacing:.04em;color:var(--lime);text-shadow:0 0 10px rgba(157,255,60,.9);opacity:0;transition:opacity .18s;white-space:nowrap;}
+#bmBar{flex:1;height:5px;border-radius:99px;background:rgba(234,246,255,.1);overflow:hidden;box-shadow:inset 0 0 4px rgba(0,0,0,.5);}
+#bmFill{height:100%;width:0%;background:linear-gradient(90deg,var(--lime),var(--cyan),var(--mag));box-shadow:0 0 10px var(--lime);transition:width .12s linear;}
+#bmBar.full{box-shadow:0 0 14px var(--lime),inset 0 0 4px rgba(0,0,0,.5);}
+#bmBar.full #bmFill{animation:bmpulse .45s ease-in-out infinite;}
+@keyframes bmpulse{0%,100%{filter:brightness(1)}50%{filter:brightness(2)}}
+/* ===== juice overlays ===== */
+#flash{position:fixed;inset:0;z-index:12;pointer-events:none;opacity:0;background:radial-gradient(120% 90% at 50% 50%,transparent 38%,rgba(255,47,176,.8) 100%);}
+#vig{position:fixed;inset:0;z-index:11;pointer-events:none;opacity:0;background:radial-gradient(74% 56% at 50% 50%,transparent 42%,rgba(4,3,12,.9) 100%);transition:opacity .3s;}
+#combo{position:fixed;left:50%;top:47%;transform:translate(-50%,-50%);z-index:15;font-family:"Arial Black",sans-serif;font-style:italic;font-size:clamp(17px,4.6vw,25px);letter-spacing:.1em;color:var(--lime);text-shadow:0 0 14px rgba(157,255,60,.9);opacity:0;pointer-events:none;white-space:nowrap;}
+/* the shop list must scroll even though the page itself blocks touch gestures */
+.shopgrid{touch-action:pan-y;-webkit-overflow-scrolling:touch;}
 </style>
 </head>
 
@@ -69,17 +83,25 @@ button.ghost:active{transform:translateY(2px);}
   <div class="pill" id="lvLabel">STAGE 1</div>
   <div id="prog"><div id="progFill"></div></div>
   <div class="pill"><span class="koban"></span><span id="coinLabel">0/0</span></div>
+  <button id="muteBtn">🔊</button>
   <button id="pauseBtn">❚❚</button>
 </div>
+<div id="flow" class="hidden">
+  <div id="chain"></div>
+  <div id="bmBar"><div id="bmFill"></div></div>
+</div>
+<div id="vig"></div>
+<div id="flash"></div>
 <div id="toast"></div>
-<div id="tip">SLIDE to move &nbsp;/&nbsp; UP to boost</div>
+<div id="combo"></div>
+<div id="tip">SLIDE to steer &nbsp;/&nbsp; TAP to jump &nbsp;/&nbsp; SWIPE DOWN to slam</div>
 
 <div id="scrTitle" class="screen">
   <img id="temariImg" class="temari-img" alt="てまり">
   <h1 class="title">NEON&nbsp;ROLL</h1>
   <div class="sub">Slide &amp; Boost to the Goal</div>
   <button id="btnStart">START</button>
-  <div class="small">v10</div>
+  <div class="small">v11</div>
 </div>
 
 <div id="scrLevels" class="screen hidden">
@@ -115,6 +137,7 @@ button.ghost:active{transform:translateY(2px);}
     <h1 class="title" style="font-size:clamp(26px,8vw,40px);">CLEAR!</h1>
     <div class="stars" id="clearStars">★★★</div>
     <div><span class="koban"></span> <span id="clearCoins">0/0</span></div>
+    <div class="small" id="clearChain">BEST CHAIN 0</div>
     <div class="row">
       <button id="btnNext">NEXT</button>
       <button class="ghost" id="btnAgain">RETRY</button>
@@ -174,7 +197,7 @@ void main(){vec4 w=uM*vec4(aP,1.0);vW=w.xyz;vN=mat3(uM)*aN;vT=aT;gl_Position=uP*
 const FS=`#version 300 es
 precision highp float;
 in vec3 vN; in vec2 vT; in vec3 vW;
-uniform vec3 uColor; uniform float uUseTex; uniform sampler2D uTex; uniform vec3 uCam; uniform float uEmis;
+uniform vec3 uColor; uniform float uUseTex; uniform sampler2D uTex; uniform vec3 uCam; uniform float uEmis; uniform float uAlpha;
 out vec4 o;
 void main(){
   vec3 n=normalize(vN);
@@ -189,10 +212,10 @@ void main(){
   vec3 fogC=vec3(0.07,0.10,0.20);
   c=mix(c,base,uEmis*0.75);
   c=mix(c,fogC,fog*(1.0-uEmis*0.6));
-  o=vec4(c,1.0);
+  o=vec4(c*uAlpha,uAlpha);
 }`;
 const prog=makeProg(VS,FS);
-const U={};for(const n of['uP','uV','uM','uColor','uUseTex','uTex','uCam','uEmis'])U[n]=gl.getUniformLocation(prog,n);
+const U={};for(const n of['uP','uV','uM','uColor','uUseTex','uTex','uCam','uEmis','uAlpha'])U[n]=gl.getUniformLocation(prog,n);
 
 /* sky pass */
 const SKY_VS=`#version 300 es
@@ -318,17 +341,23 @@ function octaMesh(){
   }
   return makeMesh(p,n,u,ix);
 }
-// capsule (pill) — rolls along z
+/* capsule (pill), long axis along X — the ball rolls by rotating about X, so this
+   is the axis that makes it read as a rolling pin.
+   The old version split the sphere along Y but offset the halves along Z: the two
+   axes were perpendicular, so the band joining them folded back on itself (z jumped
+   +0.26 → -0.26 while y barely moved) and the mesh self-intersected. Splitting and
+   offsetting along the same axis turns that band into the cylindrical body. */
 function capsuleMesh(sl){
-  const p=[],n=[],u=[],ix=[];const R=0.32,H=0.26; // half-length H
+  const p=[],n=[],u=[],ix=[];const R=0.34,H=0.24; // cap radius, half body length
   const rings=[];
-  for(let i=0;i<=sl;i++){const v=i/sl,ph=v*Math.PI; // 0..pi
-    const y=Math.cos(ph)*R;const rr=Math.sin(ph)*R;
-    const off=(ph<=Math.PI/2)?H:-H; // top hemi shifted +z, bottom -z
+  for(let i=0;i<=sl;i++){const v=i/sl,ph=v*Math.PI; // 0 = +X cap .. PI = -X cap
+    const ax=Math.cos(ph)*R,rr=Math.sin(ph)*R;
+    const off=(ph<=Math.PI/2)?H:-H;
     const ring=[];
     for(let j=0;j<=sl;j++){const w=j/sl,th=w*2*Math.PI;
-      const x=rr*Math.cos(th),z=rr*Math.sin(th)+off;
-      p.push(x,y,z);const nl=Math.hypot(x,y,z-off)||1;n.push(x/nl,y/nl,(z-off)/nl);u.push(w,v);
+      const y=rr*Math.cos(th),z=rr*Math.sin(th);
+      p.push(ax+off,y,z);
+      const nl=Math.hypot(ax,y,z)||1;n.push(ax/nl,y/nl,z/nl);u.push(w,v);
       ring.push(p.length/3-1);
     }
     rings.push(ring);
@@ -389,9 +418,9 @@ const SKINS=[
   {id:'mag',name:'PLASMA',cost:25,pal:{base:'#2a0620',grid:'#ff2fb0',glow:'#ff2fb0',band:'#ff77cf',band2:'#ffffff',node:'#ffc0ec'}},
   {id:'lime',name:'MATRIX',cost:55,pal:{base:'#08210c',grid:'#9dff3c',glow:'#9dff3c',band:'#d0ff8a',band2:'#ffffff',node:'#e6ffbf'}},
   {id:'violet',name:'VAPOR',cost:90,pal:{base:'#14082e',grid:'#b388ff',glow:'#7c4dff',band:'#22e0ff',band2:'#ff2fb0',node:'#e0d0ff'}},
-  {id:'gold',name:'AURUM',cost:150,pal:{base:'#241704',grid:'#ffcf3c',glow:'#ffb300',band:'#fff0a8',band2:'#ffffff',node:'#fff3c0'}},
   {id:'ember',name:'EMBER',cost:120,pal:{base:'#2b0a05',grid:'#ff6a2c',glow:'#ff4500',band:'#ffb070',band2:'#fff2d0',node:'#ffd0a0'}},
   {id:'ice',name:'GLACIER',cost:120,pal:{base:'#06182a',grid:'#7fdfff',glow:'#3ba8ff',band:'#d6f4ff',band2:'#ffffff',node:'#eaffff'}},
+  {id:'gold',name:'AURUM',cost:150,pal:{base:'#241704',grid:'#ffcf3c',glow:'#ffb300',band:'#fff0a8',band2:'#ffffff',node:'#fff3c0'}},
   {id:'toxic',name:'TOXIC',cost:200,pal:{base:'#0a2410',grid:'#c8ff00',glow:'#88ff00',band:'#eaff7a',band2:'#ffffff',node:'#f4ffb0'}},
   {id:'rainbow',name:'PRISM',cost:300,pal:{base:'#101020',grid:'#ff2fb0',glow:'#22e0ff',band:'#9dff3c',band2:'#ffd23c',node:'#ffffff',rainbow:true}}
 ];
@@ -432,33 +461,67 @@ function titleImageDataURL(pal){
 function refreshTitleImage(){document.getElementById('temariImg').src=titleImageDataURL(skinPal(save.skin));}
 
 /* ===== draw helpers ===== */
-let PROJ=mIdent(),VIEW=mIdent(),CAM=[0,0,0];
+let PROJ=mIdent(),VIEW=mIdent(),CAM=[0,0,0],ASPECT=1;
+const FOV_BASE=Math.PI/3.4;
 function resize(){
   const dpr=Math.min(window.devicePixelRatio||1,2);
   cvs.width=Math.round(innerWidth*dpr);cvs.height=Math.round(innerHeight*dpr);
   gl.viewport(0,0,cvs.width,cvs.height);
-  PROJ=mPersp(Math.PI/3.4,cvs.width/cvs.height,0.1,120);
+  ASPECT=cvs.width/cvs.height;
+  PROJ=mPersp(FOV_BASE,ASPECT,0.1,120);
 }
 addEventListener('resize',resize);resize();
 
-function drawMesh(mesh,model,color,emis,useTex){
+/* One scratch model matrix, reused for every draw call. Building T*RY*S by hand
+   instead of chaining mMul() keeps the render loop allocation-free — at ~300
+   draws/frame the old path was churning ~1500 Float32Arrays every frame. */
+const MM=new Float32Array(16);
+let curAlpha=-1,curTex=-1;
+function setAlpha(a){if(a!==curAlpha){curAlpha=a;gl.uniform1f(U.uAlpha,a);}}
+function drawMesh(mesh,model,color,emis,useTex,alpha){
   gl.uniformMatrix4fv(U.uM,false,model);
   gl.uniform3fv(U.uColor,color);
   gl.uniform1f(U.uEmis,emis||0);
-  gl.uniform1f(U.uUseTex,useTex?1:0);
+  const ut=useTex?1:0;
+  if(ut!==curTex){curTex=ut;gl.uniform1f(U.uUseTex,ut);}
+  setAlpha(alpha===undefined?1:alpha);
   gl.bindVertexArray(mesh.vao);
   gl.drawElements(gl.TRIANGLES,mesh.count,gl.UNSIGNED_SHORT,0);
 }
-function box(x,y,z,sx,sy,sz,color,emis,ry,rx){
-  let m=mMul(mT(x,y,z),(ry?mRY(ry):mIdent()));
-  if(rx)m=mMul(m,mRX(rx));
-  m=mMul(m,mS(sx,sy,sz));
-  drawMesh(CUBE,m,color,emis);
+// model = translate(x,y,z) * rotY(ry) * scale(sx,sy,sz), written straight into MM
+function trs(x,y,z,sx,sy,sz,ry){
+  const m=MM;
+  if(ry){
+    const c=Math.cos(ry),s=Math.sin(ry);
+    m[0]=c*sx; m[1]=0;  m[2]=-s*sx; m[3]=0;
+    m[4]=0;    m[5]=sy; m[6]=0;     m[7]=0;
+    m[8]=s*sz; m[9]=0;  m[10]=c*sz; m[11]=0;
+  }else{
+    m[0]=sx; m[1]=0;  m[2]=0;   m[3]=0;
+    m[4]=0;  m[5]=sy; m[6]=0;   m[7]=0;
+    m[8]=0;  m[9]=0;  m[10]=sz; m[11]=0;
+  }
+  m[12]=x; m[13]=y; m[14]=z; m[15]=1;
+  return m;
 }
-function ballDraw(x,y,z,roll,r){
+function box(x,y,z,sx,sy,sz,color,emis,ry,alpha){
+  drawMesh(CUBE,trs(x,y,z,sx,sy,sz,ry),color,emis,false,alpha);
+}
+function orb(x,y,z,sx,sy,sz,color,emis,ry,alpha){
+  drawMesh(SPHERE,trs(x,y,z,sx,sy,sz,ry),color,emis,false,alpha);
+}
+// additive pass for glow-only geometry (trails, shockwaves, speed streaks)
+function additive(on){
+  if(on){gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);gl.depthMask(false);}
+  else{gl.disable(gl.BLEND);gl.depthMask(true);}
+}
+function ballDraw(x,y,z,roll,r,lean,sq){
   const mesh=SHAPES[save.shape]||SPHERE;
-  let m=mMul(mT(x,y,z),mRX(roll));
-  m=mMul(m,mS(r*2,r*2,r*2));
+  // squash & stretch: stretch along the fall axis, pinch the others (volume-ish)
+  const sy=r*2*(1+sq), sxz=r*2*(1-sq*0.55);
+  let m=mMul(mT(x,y,z),mRZ(lean));
+  m=mMul(m,mRX(roll));
+  m=mMul(m,mS(sxz,sy,sxz));
   gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,skinTex[save.skin]||skinTex.cyan);gl.uniform1i(U.uTex,0);
   let tint=[1,1,1];
   const pal=skinPal(save.skin);
@@ -479,44 +542,68 @@ function genLevel(n){ // n: 1..10
   const rows=[];
   for(let i=0;i<L;i++)rows.push({m:[1,1,1],ob:null,coins:[],ramp:false,cp:false,goal:false});
   const d=Math.min(1,n/10);
+  // h = height above the track. Ground coins sit at 0.42; anything higher has to be jumped for.
+  const coin=(i,lane,h)=>{if(i>0&&i<L-2)rows[i].coins.push({lane:lane,h:(h===undefined?0.42:h),taken:false,mag:0,cx:0,cy:0,cz:0});};
+  // a ballistic arc of coins — the shape a jump traces, so following it teaches the jump
+  const arc=(i,lane,len,peak)=>{for(let k=0;k<len;k++)coin(i+k,lane,0.42+Math.sin((k+0.5)/len*Math.PI)*peak);};
   let i=10;
   while(i<L-12){
-    if(i%30===0&&i>12){rows[i].cp=true;i+=2;continue;}
     const roll=rnd();
-    if(roll<0.22){ // coin line
+    if(roll<0.17){ // ground coin line
       const ln=Math.floor(rnd()*3);const len=5+Math.floor(rnd()*3);
-      for(let k=0;k<len&&i<L-12;k++,i++)rows[i].coins.push({lane:ln,taken:false});
+      for(let k=0;k<len&&i<L-12;k++,i++)coin(i,ln);
       i+=1;
-    }else if(roll<0.36&&n>=2){ // bridge gap
+    }else if(roll<0.28){ // jump bait: an arc you can only clear by jumping
+      const ln=Math.floor(rnd()*3);const len=5+Math.floor(rnd()*2);
+      arc(i,ln,len,1.55);
+      i+=len+2;
+    }else if(roll<0.38&&n>=2){ // bridge gap
       const ln=Math.floor(rnd()*3);const len=3+(rnd()<d?1:0);
-      for(let k=0;k<len&&i<L-12;k++,i++){rows[i].m=[0,0,0];rows[i].m[ln]=1;if(k>0)rows[i].coins.push({lane:ln,taken:false});}
+      for(let k=0;k<len&&i<L-12;k++,i++){rows[i].m=[0,0,0];rows[i].m[ln]=1;if(k>0)coin(i,ln);}
       i+=2;
-    }else if(roll<0.5){ // pestle
+    }else if(roll<0.50){ // pestle
       const ln=Math.floor(rnd()*3);
       rows[i].ob={t:'p',lane:ln,ph:rnd()*6.28,sp:2.2+d*1.2};
       if(rnd()<0.5&&i+3<L-12){rows[i+3].ob={t:'p',lane:(ln+1+Math.floor(rnd()*2))%3,ph:rnd()*6.28,sp:2.2+d*1.2};i+=3;}
       i+=4;
-    }else if(roll<0.62&&n>=3){ // sweeping rotor bar
+    }else if(roll<0.61&&n>=3){ // sweeping rotor bar — low, so jumping beats it
       rows[i].ob={t:'r',ph:rnd()*6.28,sp:1.4+d*1.1};
       i+=5;
-    }else if(roll<0.74){ // static wall(s)
+    }else if(roll<0.73){ // static wall(s), with a coin arc showing the way over
       const ln=Math.floor(rnd()*3);
       rows[i].ob={t:'w',lane:ln};
+      if(rnd()<0.45)arc(i-2,ln,5,1.5);
       if(rnd()<d&&i+2<L-12){rows[i+2].ob={t:'w',lane:(ln+1+Math.floor(rnd()*2))%3};i+=2;}
       i+=4;
-    }else if(roll<0.84&&n>=4){ // sliding wall
+    }else if(roll<0.83&&n>=4){ // sliding wall
       rows[i].ob={t:'s',ph:rnd()*6.28,sp:1.2+d*0.9};
       i+=5;
-    }else if(roll<0.93&&n>=3){ // ramp + gap
+    }else if(roll<0.93&&n>=3){ // ramp + gap, with a coin arc arcing over the hole
       rows[i].ramp=true;
       for(let k=1;k<=4&&i+k<L-12;k++)rows[i+k].m=[0,0,0];
+      const ln=Math.floor(rnd()*3);
+      arc(i+1,ln,4,1.9);
       i+=6;
     }else{ // rest + scattered coins
-      if(rnd()<0.6)rows[i].coins.push({lane:Math.floor(rnd()*3),taken:false});
+      if(rnd()<0.6)coin(i,Math.floor(rnd()*3));
       i+=2;
     }
   }
   rows[L-1].goal=true;
+  /* Checkpoints, placed after the fact. The old code tested `i%30===0` inside the
+     feature loop, but `i` advances by a variable stride and skipped those indices
+     almost every time — 6 of the 10 stages ended up with no checkpoint at all. */
+  const CP_EVERY=26;
+  for(let want=CP_EVERY;want<L-14;want+=CP_EVERY){
+    for(let k=0;k<8;k++){          // nudge forward to the next safe, fully solid row
+      const j=want+k;
+      if(j>=L-14)break;
+      const r=rows[j];
+      if(r.m[0]&&r.m[1]&&r.m[2]&&!r.ob&&!r.ramp&&!r.cp&&!rows[j+1].ob&&!rows[j+1].ramp){
+        r.cp=true;r.coins.length=0;break;
+      }
+    }
+  }
   let total=0;for(const r of rows)total+=r.coins.length;
   return {rows,len:L,total,speed:6.4+n*0.28};
 }
@@ -525,7 +612,7 @@ function genLevel(n){ // n: 1..10
 const SAVE_KEY='temari-korokoro-v1';
 let save;
 try{save=JSON.parse(localStorage.getItem(SAVE_KEY))||{};}catch(e){save={};}
-save.stars=save.stars||{}; save.coins=save.coins||0;
+save.stars=save.stars||{}; save.coins=save.coins||0; save.mute=!!save.mute;
 save.ownedSkins=save.ownedSkins||['cyan']; save.skin=save.skin||'cyan';
 save.ownedShapes=save.ownedShapes||['sphere']; save.shape=save.shape||'sphere';
 // migrate old 和風 skin ids to neon defaults
@@ -537,28 +624,97 @@ function persist(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));}catc
 window.save=save;window.persist=persist; // debug handle
 refreshTitleImage();
 
+/* ===== feel tuning =====
+   These are the numbers that decide whether the ball feels like an object or a
+   UI slider. Kept together so they can actually be tuned. */
+const GRAV=27;               // gravity (was 20 — snappier arcs read as more responsive)
+const JUMP_V=10.4;           // first jump impulse
+const JUMP_V2=8.8;           // air jump impulse
+const SLAM_V=-24;            // ground-pound entry speed
+const SLAM_G=1.8;            // extra gravity while slamming
+const COYOTE=0.12;           // still jumpable this long after leaving an edge
+const JBUF=0.15;             // a jump pressed this early still fires on landing
+const SPRING_G=330;          // lateral spring stiffness, grounded
+const SPRING_A=155;          // ...and airborne (committing to a jump means less control)
+const ZETA=0.58;             // damping ratio <1 → slight overshoot, which reads as weight
+const VX_MAX=9.5;
+const XMAX=1.75;
+const MAGNET=1.2;            // coin attraction radius
+const FLOW_MAX=26;           // chain length that maxes out the speed bonus
+const BOOST_TIME=3.0;
+
 const G={
   mode:'title', lvNum:1, lv:null,
-  x:0,y:R,z:0,vy:0,roll:0,tx:0,lane:1,spd:1,
-  grounded:true, inv:0, misses:0, got:0,
+  x:0,y:R,z:0,vx:0,vy:0,roll:0,tx:0,sp:0,
+  lean:0, sq:0,                       // banking angle, squash&stretch
+  grounded:true, coyote:0, jbuf:0, airJumps:1, slamming:false,
+  inv:0, misses:0, got:0,
+  chain:0, bestChain:0, bm:0, boostT:0, flow:0,
+  freeze:0,                           // hit-stop
   cpZ:0, t:0, shake:0, clearAt:0
 };
-let camX=0,camY=3,camZ=-6;
+let camX=0,camY=3,camZ=-6,camFov=FOV_BASE,camRoll=0;
+const trail=[],rings=[],bits=[];
 
 function startLevel(n){
   G.lvNum=n; G.lv=genLevel(n);
-  for(const r of G.lv.rows)for(const c of r.coins)c.taken=false;
-  G.x=0;G.tx=0;G.lane=1;G.spd=1;G.y=R;G.z=DZ*2;G.vy=0;G.roll=0;
-  G.grounded=true;G.inv=0;G.misses=0;G.got=0;G.cpZ=G.z;G.t=0;
+  for(const r of G.lv.rows){
+    for(const c of r.coins){c.taken=false;c.mag=0;}
+    if(r.ob){r.ob.dead=false;r.ob.passed=false;r.ob.mg=99;}
+  }
+  G.x=0;G.tx=0;G.vx=0;G.y=R;G.z=DZ*2;G.vy=0;G.roll=0;G.lean=0;G.sq=0;
+  G.grounded=true;G.coyote=0;G.jbuf=0;G.airJumps=1;G.slamming=false;
+  G.inv=0;G.misses=0;G.got=0;G.freeze=0;
+  G.chain=0;G.bestChain=0;G.bm=0;G.boostT=0;G.flow=0;
+  G.cpZ=G.z;G.t=0;G.shake=0;
+  trail.length=0;rings.length=0;bits.length=0;
+  camX=0;camY=3;camZ=G.z-6.4;camFov=FOV_BASE;camRoll=0;
   G.mode='play';
   showScreen(null);
   document.getElementById('hud').classList.remove('hidden');
+  document.getElementById('flow').classList.remove('hidden');
   document.getElementById('lvLabel').textContent='STAGE '+n;
-  updateHUD();
-  if(n===1&&!save.stars[1]){tip(true);setTimeout(()=>tip(false),3500);}
+  setVig(0);updateHUD();updateFlowHUD();
+  if(n===1&&!save.stars[1]){tip(true);setTimeout(()=>tip(false),4200);}
   startRoll();
 }
 function tip(on){document.getElementById('tip').style.opacity=on?1:0;}
+
+/* ===== feedback helpers ===== */
+function buzz(p){if(navigator.vibrate){try{navigator.vibrate(p);}catch(e){}}}
+function combo(s){
+  const el=document.getElementById('combo');
+  if(!s){el.style.opacity=0;return;}
+  el.textContent=s;
+  el.style.transition='none';el.style.opacity=1;el.style.transform='translate(-50%,-50%) scale(1.25)';
+  requestAnimationFrame(()=>{el.style.transition='opacity .5s ease-out, transform .5s ease-out';
+    el.style.opacity=0;el.style.transform='translate(-50%,-90%) scale(1)';});
+}
+function flash(){
+  const el=document.getElementById('flash');
+  el.style.transition='none';el.style.opacity=0.9;
+  requestAnimationFrame(()=>{el.style.transition='opacity .35s ease-out';el.style.opacity=0;});
+}
+function setVig(v){document.getElementById('vig').style.opacity=v;}
+function ring(x,y,z,c){rings.push({x,y,z,c,t:0});}
+function burst(x,y,z,c,n){
+  for(let i=0;i<n;i++)bits.push({x,y,z,c,t:0,
+    vx:(Math.random()-0.5)*7,vy:Math.random()*6.5+1.5,vz:(Math.random()-0.5)*7,s:0.5+Math.random()*0.8});
+}
+function addChain(v){
+  G.chain+=v;
+  if(G.chain>G.bestChain)G.bestChain=G.chain;
+  updateFlowHUD();
+}
+function addBoost(v){
+  if(G.boostT>0)return;                 // already boosting — don't stack
+  G.bm=clamp(G.bm+v,0,1);
+  if(G.bm>=1){
+    G.bm=0;G.boostT=BOOST_TIME;G.shake=0.3;
+    sfx('boost');buzz([14,26,14,26]);combo('BOOST!!');setVig(1);
+  }
+  updateFlowHUD();
+}
 
 /* ===== physics ===== */
 function rowAt(z){const i=Math.round(z/DZ);return (G.lv&&i>=0&&i<G.lv.len)?G.lv.rows[i]:null;}
@@ -578,12 +734,84 @@ function obState(ob,t){
   if(ob.t==='s'){return {bx:1.2*Math.sin(t*ob.sp+ob.ph)};}
   return {};
 }
-function miss(){
-  if(G.inv>0)return;
-  G.misses++; G.shake=0.5;
-  sfx('hit');
-  G.x=0;G.tx=0;G.lane=1;G.y=R;G.z=Math.max(G.cpZ,DZ*2);G.vy=0;G.grounded=true;G.inv=1.6;
-  toast('CRASH!');
+/* Signed clearance from a hazard's kill box: >0 means you got past it, and the
+   value is how close you came. One formula drives both collision and near-miss. */
+function obClear(ob,st){
+  if(ob.t==='p'){
+    if(st.h>=0.75)return 99;                                   // pestle is lifted, harmless
+    return Math.max(Math.abs(G.x-LANES[ob.lane])-0.82, G.y-(R+1.2));
+  }
+  if(ob.t==='r')return Math.max(Math.abs(G.x-st.bx)-(1.05+R*0.6), G.y-(R+0.75));
+  if(ob.t==='w')return Math.max(Math.abs(G.x-LANES[ob.lane])-(0.6+R*0.7), G.y-(R+1.4));
+  if(ob.t==='s')return Math.max(Math.abs(G.x-st.bx)-(0.55+R*0.7), G.y-(R+1.6));
+  return 99;
+}
+
+/* Hitting something no longer teleports you back — it costs you your chain and
+   your speed and shoves you sideways. Losing the run you were building is the
+   punishment; stopping the run outright just killed the flow. */
+function crash(){
+  if(G.inv>0||G.boostT>0)return;
+  G.misses++;
+  G.chain=0;G.bm=Math.max(0,G.bm-0.4);
+  G.shake=0.7;G.freeze=0.09;G.inv=1.15;
+  G.vx=-G.vx*0.55;G.sq=-0.4;G.slamming=false;
+  sfx('hit');buzz([18,42,18]);flash();
+  toast('CRASH!');combo('');
+  updateHUD();updateFlowHUD();
+}
+/* Falling off the track is the one thing that still sends you back — you are
+   literally not on the course any more. Deliberately NOT gated on invulnerability:
+   the old code returned early here, so a pit entered during i-frames left the ball
+   falling through the void until they expired. */
+function pitFall(){
+  G.misses++;
+  G.chain=0;G.bm=0;G.shake=0.5;
+  sfx('fall');buzz(30);
+  G.x=0;G.tx=0;G.vx=0;G.y=R;G.z=Math.max(G.cpZ,DZ*2);G.vy=0;
+  G.grounded=true;G.slamming=false;G.airJumps=1;G.inv=1.2;G.sq=0;
+  trail.length=0;
+  toast('FALL!');combo('');
+  updateHUD();updateFlowHUD();
+}
+function land(){
+  G.y=R;G.vy=0;G.grounded=true;G.airJumps=1;G.coyote=0;
+  if(G.slamming)slamImpact();
+  else{G.sq=-0.3;sfx('land');}
+}
+function doJump(){
+  if(G.grounded||G.coyote>0){
+    G.vy=JUMP_V;G.grounded=false;G.coyote=0;G.jbuf=0;G.airJumps=1;G.sq=0.34;
+    sfx('jump');buzz(9);
+  }else if(G.airJumps>0){
+    G.airJumps--;G.vy=JUMP_V2;G.slamming=false;G.jbuf=0;G.sq=0.30;
+    sfx('jump2');ring(G.x,G.y,G.z,COL.kin);buzz(9);
+  }else{
+    G.jbuf=JBUF;                       // pressed too early — fire it on landing
+  }
+}
+function doSlam(){
+  if(G.grounded||G.slamming)return;
+  G.slamming=true;G.vy=SLAM_V;G.sq=0.42;
+  sfx('slamgo');
+}
+function slamImpact(){
+  G.slamming=false;G.sq=-0.55;G.shake=0.6;G.freeze=0.05;
+  sfx('slam');buzz(30);
+  ring(G.x,R*0.5,G.z,COL.green);
+  const zi=Math.round(G.z/DZ);let killed=0;
+  for(let k=zi-2;k<=zi+2;k++){
+    if(k<0||k>=G.lv.len)continue;
+    const ob=G.lv.rows[k].ob;
+    if(ob&&!ob.dead){
+      ob.dead=true;killed++;
+      burst(ob.lane!==undefined?LANES[ob.lane]:G.x,1.0,k*DZ,COL.sakura,14);
+    }
+  }
+  if(killed){
+    addChain(killed*2);addBoost(0.10*killed);
+    combo(killed>1?'SLAM x'+killed:'SLAM!');
+  }
 }
 function toast(s){
   const el=document.getElementById('toast');
@@ -595,46 +823,92 @@ function step(dt){
   G.t+=dt;
   if(G.inv>0)G.inv-=dt;
   if(G.shake>0)G.shake-=dt;
-  const sp=G.lv.speed*G.spd;
+  if(G.coyote>0)G.coyote-=dt;
+  if(G.jbuf>0)G.jbuf-=dt;
+  if(G.boostT>0){G.boostT-=dt;if(G.boostT<=0){G.boostT=0;setVig(0);}}
+
+  /* Speed is earned, not chosen. Chaining pickups and near-misses raises `flow`,
+     which raises the speed, which raises the risk. The old scheme let you simply
+     hold a slow speed forever, so the safest play was also the dullest one. */
+  G.flow=clamp(G.chain/FLOW_MAX,0,1);
+  const sp=G.lv.speed*(1+G.flow*0.34+(G.boostT>0?0.5:0));
+  G.sp=sp;
   G.z+=sp*dt;
   G.roll+=sp*dt/R;
-  G.x=lerp(G.x,G.tx,Math.min(1,dt*(dragActive?22:15)));
+
+  // lateral: spring-damper toward the steer target, slightly underdamped so the
+  // ball overshoots and settles instead of gliding to a stop like a slider
+  const k=G.grounded?SPRING_G:SPRING_A;
+  const c=2*Math.sqrt(k)*ZETA;
+  G.vx+=((G.tx-G.x)*k-G.vx*c)*dt;
+  G.vx=clamp(G.vx,-VX_MAX,VX_MAX);
+  G.x+=G.vx*dt;
+  if(G.x>XMAX){G.x=XMAX;G.vx=-Math.abs(G.vx)*0.3;}          // rail bounce
+  if(G.x<-XMAX){G.x=-XMAX;G.vx=Math.abs(G.vx)*0.3;}
+  G.lean=lerp(G.lean,clamp(G.vx*0.075,-0.55,0.55),Math.min(1,dt*11));
+  G.sq=lerp(G.sq,0,Math.min(1,dt*9));
+
   // vertical
   const over=groundUnder(G.x,G.z);
-  if(G.grounded){
-    if(!over){G.grounded=false;G.vy=0;}
-  }
+  if(G.grounded&&!over){G.grounded=false;G.coyote=COYOTE;G.vy=0;}
   if(!G.grounded){
-    G.vy-=20*dt;G.y+=G.vy*dt;
-    if(G.vy<=0&&G.y<=R&&over){G.y=R;G.vy=0;G.grounded=true;sfx('land');}
-    if(G.y<-5){miss();return;}
+    const y0=G.y;
+    G.vy-=GRAV*(G.slamming?SLAM_G:1)*dt;
+    G.y+=G.vy*dt;
+    /* Land only if this frame actually crossed the surface from above (with a small
+       ledge-grab grace). The check used to be just `y<=R`, so a ball that had already
+       dropped metres into a pit would pop back up onto the far edge the moment any
+       ground came within range, instead of falling. */
+    if(G.vy<=0&&G.y<=R&&y0>R-0.35&&over)land();
+    if(G.y<-5){pitFall();return;}
   }
-  // ramp
+  if(G.jbuf>0&&(G.grounded||G.coyote>0))doJump();
+
   const r0=rowAt(G.z);
-  if(r0&&r0.ramp&&G.grounded){G.grounded=false;G.vy=8.6;sfx('jump');}
+  // ramp: impulse scales with the current speed so the gap is always clearable.
+  // Fixed vy=8.6 meant anyone travelling slowly fell in with no way to know why.
+  if(r0&&r0.ramp&&G.grounded){
+    const air=clamp(6.9/Math.max(sp,1),0.62,1.15);
+    G.vy=GRAV*air*0.5;
+    G.grounded=false;G.airJumps=1;G.sq=0.4;G.shake=0.12;
+    sfx('jump');
+  }
   // checkpoint
-  if(r0&&r0.cp&&G.z>G.cpZ+DZ){if(Math.abs(Math.round(G.z/DZ)*DZ-G.cpZ)>DZ){const nz=Math.round(G.z/DZ)*DZ;if(nz>G.cpZ){G.cpZ=nz;sfx('cp');}}}
-  // coins & obstacles near
+  if(r0&&r0.cp){
+    const nz=Math.round(G.z/DZ)*DZ;
+    if(nz>G.cpZ+DZ*0.5){G.cpZ=nz;sfx('cp');combo('CHECKPOINT');}
+  }
+
   const zi=Math.round(G.z/DZ);
-  for(let k=zi-1;k<=zi+1;k++){
-    if(k<0||k>=G.lv.len)continue;
-    const r=G.lv.rows[k],rz=k*DZ;
-    for(const c of r.coins){
-      if(!c.taken&&Math.abs(G.z-rz)<0.55&&Math.abs(G.x-LANES[c.lane])<0.68&&G.y<1.7){
-        c.taken=true;G.got++;save.coins++;sfx('coin');updateHUD();
+  for(let kk=zi-2;kk<=zi+2;kk++){
+    if(kk<0||kk>=G.lv.len)continue;
+    const r=G.lv.rows[kk],rz=kk*DZ;
+    for(const co of r.coins){
+      if(co.taken)continue;
+      const cx=LANES[co.lane],cy=R+co.h;
+      const dist=Math.hypot(G.x-cx,G.y-cy,G.z-rz);
+      const grab=G.boostT>0?2.2:MAGNET;
+      if(dist<grab)co.mag=Math.min(1,co.mag+dt*(G.boostT>0?8:5));
+      if(dist<0.6||(co.mag>0.8&&dist<grab)){
+        co.taken=true;G.got++;
+        addChain(1);addBoost(0.035);   // ~29 coins to fill: boost stays a reward, not a default state
+        burst(cx,cy,rz,COL.kin,4);
+        sfx('coin');updateHUD();
+        if(G.chain%10===0)combo('CHAIN '+G.chain);
       }
     }
     const ob=r.ob;
-    if(!ob||Math.abs(G.z-rz)>0.62)continue;
+    if(!ob||ob.dead)continue;
     const st=obState(ob,G.t);
-    if(ob.t==='p'){
-      if(st.h<0.75&&Math.abs(G.x-LANES[ob.lane])<0.82&&G.y<R+1.2){miss();return;}
-    }else if(ob.t==='r'){
-      if(Math.abs(G.x-st.bx)<1.05+R*0.6&&G.y<R+0.75){miss();return;}
-    }else if(ob.t==='w'){
-      if(Math.abs(G.x-LANES[ob.lane])<0.6+R*0.7&&G.y<R+1.4){miss();return;}
-    }else if(ob.t==='s'){
-      if(Math.abs(G.x-st.bx)<0.55+R*0.7&&G.y<R+1.6){miss();return;}
+    if(Math.abs(G.z-rz)<0.9){
+      const cl=obClear(ob,st);
+      if(cl<ob.mg)ob.mg=cl;
+      if(cl<0&&Math.abs(G.z-rz)<0.62){crash();return;}
+    }
+    // threading the needle pays: a close pass feeds the boost meter
+    if(!ob.passed&&G.z>rz+0.9){
+      ob.passed=true;
+      if(ob.mg>0&&ob.mg<0.5){addChain(2);addBoost(0.09);combo('NICE!');sfx('near');}
     }
   }
   // goal
@@ -643,22 +917,36 @@ function step(dt){
 }
 function clearLevel(){
   G.mode='clear';G.clearAt=performance.now();
-  stopRoll();sfx('clear');
+  stopRoll();sfx('clear');setVig(0);
   const ratio=G.lv.total?G.got/G.lv.total:1;
   let st=1;
-  if(ratio>=1&&G.misses===0)st=3;
+  if(ratio>=0.92&&G.misses===0)st=3;
   else if(ratio>=0.6&&G.misses<=2)st=2;
   const prev=save.stars[G.lvNum]||0;
   if(st>prev)save.stars[G.lvNum]=st;
+  /* Credits are banked here, not at pickup. They used to be added to save.coins the
+     instant a coin was touched, so collecting and retrying farmed them for free. */
+  const bonus=Math.floor(G.bestChain/10)*5;
+  save.coins+=G.got+bonus;
   persist();
   document.getElementById('clearStars').innerHTML=
     '★'.repeat(st)+'<span class="off">'+'★'.repeat(3-st)+'</span>';
-  document.getElementById('clearCoins').textContent=G.got+'/'+G.lv.total;
+  document.getElementById('clearCoins').textContent=G.got+'/'+G.lv.total+(bonus?' +'+bonus:'');
+  document.getElementById('clearChain').textContent='BEST CHAIN '+G.bestChain;
   document.getElementById('btnNext').style.display=G.lvNum<10?'':'none';
   document.getElementById('hud').classList.add('hidden');
+  document.getElementById('flow').classList.add('hidden');
   setTimeout(()=>showScreen('scrClear'),450);
 }
 function updateHUD(){document.getElementById('coinLabel').textContent=G.got+'/'+(G.lv?G.lv.total:0);}
+function updateFlowHUD(){
+  const ch=document.getElementById('chain'),bar=document.getElementById('bmBar');
+  ch.textContent=G.chain>2?('CHAIN '+G.chain):'';
+  ch.style.opacity=G.chain>2?1:0;
+  const pct=G.boostT>0?(G.boostT/BOOST_TIME):G.bm;
+  document.getElementById('bmFill').style.width=(pct*100)+'%';
+  bar.classList.toggle('full',G.boostT>0);
+}
 function updateProg(){
   const p=clamp(G.z/((G.lv.len-1)*DZ)*100,0,100);
   document.getElementById('progFill').style.width=p+'%';
@@ -675,15 +963,21 @@ const petals=[];
 for(let i=0;i<36;i++)petals.push({x:(Math.random()-0.5)*16,y:Math.random()*9,z:Math.random()*40,s:0.7+Math.random()*0.9,ph:Math.random()*7});
 
 function render(now,dt){
-  // camera
-  const tx=G.x*0.55, ty=G.y*0.4+3.0, tz=G.z-6.4;
+  /* Speed has to be visible, not just numeric: the camera pulls back, the field of
+     view opens up and the whole frame rolls slightly into the turn. */
+  const spdN=G.lv?clamp((G.sp/G.lv.speed-1)/0.84,0,1):0;
+  const back=6.4+spdN*1.5;
+  const tx=G.x*0.55, ty=G.y*0.4+3.0+spdN*0.25, tz=G.z-back;
   camX=lerp(camX,tx,Math.min(1,dt*6));
   camY=lerp(camY,ty,Math.min(1,dt*5));
   camZ=lerp(camZ,tz,Math.min(1,dt*8));
+  camFov=lerp(camFov,FOV_BASE*(1+spdN*0.11),Math.min(1,dt*4));
+  camRoll=lerp(camRoll,-G.lean*0.20,Math.min(1,dt*7));
   let sx=0,sy=0;
   if(G.shake>0){sx=(Math.random()-0.5)*G.shake*0.5;sy=(Math.random()-0.5)*G.shake*0.5;}
   CAM=[camX+sx,camY+sy,camZ];
   VIEW=mLookAt(CAM[0],CAM[1],CAM[2],G.x*0.8+sx,G.y*0.5+0.9+sy,G.z+5);
+  PROJ=mMul(mRZ(camRoll),mPersp(camFov,ASPECT,0.1,120));
   gl.disable(gl.DEPTH_TEST);
   gl.useProgram(skyProg);
   gl.uniform1f(skyU.uT,now/1000);
@@ -721,15 +1015,13 @@ function render(now,dt){
         for(const s of [-1,1]){
           if(!(s<0?r.m[2]:r.m[0]))continue;
           box(2.15*s,0.55,rz,0.08,1.2,0.08,COL.wood,0);
-          let m=mMul(mT(2.15*s,1.35,rz),mS(0.42,0.55,0.42));
-          drawMesh(SPHERE,m,lc,0.85+0.12*Math.sin(G.t*3+k));
+          orb(2.15*s,1.35,rz,0.42,0.55,0.42,lc,0.85+0.12*Math.sin(G.t*3+k));
         }
       }
       if(r.cp){ // checkpoint: big warm lantern pair
         for(const s of [-1,1]){
           box(2.15*s,0.7,rz,0.09,1.5,0.09,COL.wood,0);
-          let m=mMul(mT(2.15*s,1.65,rz),mS(0.55,0.7,0.55));
-          drawMesh(SPHERE,m,COL.lantern,0.9);
+          orb(2.15*s,1.65,rz,0.55,0.7,0.55,COL.lantern,0.9);
         }
       }
       if(r.goal){ // torii
@@ -740,12 +1032,14 @@ function render(now,dt){
       }
       for(const c of r.coins){
         if(c.taken)continue;
-        let m=mMul(mT(LANES[c.lane],R+0.42,rz),mRY(G.t*3.4+k));
-        m=mMul(m,mS(0.62,0.86,0.16));
-        drawMesh(SPHERE,m,COL.kin,0.6+0.2*Math.sin(G.t*6+k));
+        // magnetised coins drift toward the ball before they pop — collecting
+        // reads as generous instead of pixel-perfect
+        const cx=lerp(LANES[c.lane],G.x,c.mag),cy=lerp(R+c.h,G.y,c.mag),cz=lerp(rz,G.z,c.mag);
+        const s=1-c.mag*0.25;
+        drawMesh(SPHERE,trs(cx,cy,cz,0.62*s,0.86*s,0.16*s,G.t*3.4+k),COL.kin,0.6+0.2*Math.sin(G.t*6+k));
       }
       const ob=r.ob;
-      if(ob){
+      if(ob&&!ob.dead){
         const st=obState(ob,G.t);
         if(ob.t==='p'){
           box(LANES[ob.lane],3.4,rz,0.22,2.4,0.22,COL.wood,0);
@@ -763,25 +1057,73 @@ function render(now,dt){
         }
       }
     }
-    ballDraw(G.x,G.y,G.z,G.roll,R);
+    // the ball blinks while staggered so the i-frames are legible
+    const hidden=G.inv>0&&Math.floor(G.t*22)%2===0;
+    if(!hidden)ballDraw(G.x,G.y,G.z,G.roll,R,G.lean,G.sq);
+    drawFx(dt,spdN);
   }
-  // neon particle bits floating upward near camera
+  /* neon bits drifting past the camera — they stretch into streaks as the ball
+     speeds up, which is most of what sells the sensation of going fast */
+  additive(true);
+  const stretch=1+spdN*7+(G.boostT>0?7:0);
   for(let pi=0;pi<petals.length;pi++){
     const p=petals[pi];
     p.y+=dt*(0.5+p.s*0.5);
     p.x+=Math.sin(now/1000+p.ph)*dt*0.4;
     if(p.y>9){p.y=-1;p.x=(Math.random()-0.5)*16;}
     const wz=G.z-4+p.z%36;
-    let m=mMul(mT(camX+p.x*0.6,p.y,wz),mRY(now/500+p.ph));
-    m=mMul(m,mS(0.08*p.s,0.08*p.s,0.08*p.s));
-    drawMesh(CUBE,m,(pi&1)?COL.kin:COL.sakura,0.9);
+    const s=0.075*p.s;
+    drawMesh(CUBE,trs(camX+p.x*0.6,p.y,wz,s,s,s*stretch,0),(pi&1)?COL.kin:COL.sakura,1,false,0.75);
   }
+  additive(false);
+}
+/* trail ghosts, shockwave rings and debris — all additive, all purely cosmetic */
+function drawFx(dt,spdN){
+  trail.push({x:G.x,y:G.y,z:G.z});
+  if(trail.length>16)trail.shift();
+  additive(true);
+  const tCol=G.boostT>0?COL.green:COL.kin;
+  // skip the newest samples — drawn on top of the ball they read as a blob, not a trail
+  for(let i=0;i<trail.length-3;i++){
+    const p=trail[i],f=i/trail.length;
+    const a=f*f*(G.boostT>0?0.4:0.15);
+    if(a<0.012)continue;
+    const s=R*2*(0.2+f*0.45);
+    orb(p.x,p.y,p.z,s,s,s,tCol,1,0,a);
+  }
+  for(let i=rings.length-1;i>=0;i--){
+    const rg=rings[i];rg.t+=dt;
+    if(rg.t>0.45){rings.splice(i,1);continue;}
+    const f=rg.t/0.45,rad=0.5+f*4.6,a=(1-f)*0.5;
+    orb(rg.x,rg.y,rg.z,rad,rad*0.16,rad,rg.c,1,0,a);
+  }
+  for(let i=bits.length-1;i>=0;i--){
+    const b=bits[i];b.t+=dt;
+    if(b.t>0.7){bits.splice(i,1);continue;}
+    b.vy-=24*dt;
+    b.x+=b.vx*dt;b.y+=b.vy*dt;b.z+=b.vz*dt;
+    const a=(1-b.t/0.7)*0.9,s=0.13*b.s;
+    drawMesh(CUBE,trs(b.x,b.y,b.z,s,s,s,b.t*9),b.c,1,false,a);
+  }
+  additive(false);
 }
 COL.shu2=[1.0,0.30,0.72];
 
 /* ===== audio ===== */
-let AC=null,rollNode=null,rollGain=null;
-function audio(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(AC&&AC.state==='suspended')AC.resume();return AC;}
+let AC=null,MASTER=null,rollNode=null,rollGain=null,rollFilter=null;
+function audio(){
+  if(!AC){try{
+    AC=new (window.AudioContext||window.webkitAudioContext)();
+    MASTER=AC.createGain();MASTER.gain.value=save.mute?0:1;MASTER.connect(AC.destination);
+  }catch(e){}}
+  if(AC&&AC.state==='suspended')AC.resume();
+  return AC;
+}
+function setMute(m){
+  save.mute=!!m;persist();
+  if(MASTER)MASTER.gain.value=save.mute?0:1;
+  const b=document.getElementById('muteBtn');if(b)b.textContent=save.mute?'🔇':'🔊';
+}
 const PENTA=[523.25,587.33,659.25,783.99,880.0];let coinStep=0;
 function env(g,t0,a,peak,dec){g.gain.setValueAtTime(0.0001,t0);g.gain.linearRampToValueAtTime(peak,t0+a);g.gain.exponentialRampToValueAtTime(0.0001,t0+a+dec);}
 function tone(type,f0,f1,peak,a,dec,t0){
@@ -789,7 +1131,7 @@ function tone(type,f0,f1,peak,a,dec,t0){
   o.type=type;o.frequency.setValueAtTime(f0,t0);
   if(f1)o.frequency.exponentialRampToValueAtTime(f1,t0+a+dec);
   env(g,t0,a,peak,dec);
-  o.connect(g).connect(AC.destination);
+  o.connect(g).connect(MASTER);
   o.start(t0);o.stop(t0+a+dec+0.05);
 }
 function noiseBuf(){
@@ -801,23 +1143,44 @@ function noise(peak,a,dec,f,q,t0){
   const s=AC.createBufferSource();NB=NB||noiseBuf();s.buffer=NB;
   const fl=AC.createBiquadFilter();fl.type='bandpass';fl.frequency.value=f;fl.Q.value=q;
   const g=AC.createGain();env(g,t0,a,peak,dec);
-  s.connect(fl).connect(g).connect(AC.destination);
+  s.connect(fl).connect(g).connect(MASTER);
   s.start(t0);s.stop(t0+a+dec+0.05);
 }
 function sfx(name){
   if(!audio())return;
   const t=AC.currentTime+0.01;
   if(name==='coin'){
-    const f=PENTA[coinStep%PENTA.length];coinStep++;
-    tone('triangle',f,0,0.16,0.005,0.22,t);
-    tone('sine',f*2,0,0.07,0.005,0.16,t);
+    // the chain climbs the scale and then keeps climbing in octaves — the sound
+    // itself tells you the run is going well
+    const i=coinStep%PENTA.length,oct=Math.min(2,(coinStep/PENTA.length)|0);
+    const f=PENTA[i]*Math.pow(2,oct);coinStep++;
+    tone('triangle',f,0,0.15,0.005,0.2,t);
+    tone('sine',f*2,0,0.06,0.005,0.14,t);
   }else if(name==='hit'){
     tone('sine',150,55,0.4,0.005,0.3,t);
     noise(0.25,0.005,0.18,900,0.8,t);
     coinStep=0;
+  }else if(name==='fall'){
+    tone('sawtooth',420,60,0.22,0.01,0.5,t);
+    coinStep=0;
   }else if(name==='jump'){
-    noise(0.14,0.02,0.28,600,2.2,t);
-    tone('sine',320,640,0.08,0.02,0.2,t);
+    noise(0.13,0.02,0.24,600,2.2,t);
+    tone('sine',320,660,0.09,0.015,0.18,t);
+  }else if(name==='jump2'){
+    tone('triangle',520,1040,0.11,0.008,0.18,t);
+    noise(0.09,0.01,0.16,1400,2.0,t);
+  }else if(name==='slamgo'){
+    tone('sawtooth',900,180,0.12,0.008,0.22,t);
+  }else if(name==='slam'){
+    tone('sine',180,40,0.5,0.004,0.42,t);
+    noise(0.34,0.004,0.3,320,0.7,t);
+    noise(0.18,0.004,0.22,2600,1.2,t);
+  }else if(name==='near'){
+    noise(0.16,0.006,0.16,2200,3.5,t);
+    tone('sine',1320,1760,0.05,0.006,0.12,t);
+  }else if(name==='boost'){
+    [0,2,4].forEach((i,k)=>tone('square',PENTA[i],PENTA[i]*2,0.1,0.006,0.28,t+k*0.05));
+    noise(0.22,0.02,0.55,1200,0.9,t);
   }else if(name==='land'){
     tone('sine',120,80,0.12,0.004,0.1,t);
   }else if(name==='cp'){
@@ -834,17 +1197,22 @@ function startRoll(){
   if(!audio())return;
   stopRoll();
   const s=AC.createBufferSource();NB=NB||noiseBuf();s.buffer=NB;s.loop=true;
-  const fl=AC.createBiquadFilter();fl.type='lowpass';fl.frequency.value=260;
+  rollFilter=AC.createBiquadFilter();rollFilter.type='lowpass';rollFilter.frequency.value=260;
   rollGain=AC.createGain();rollGain.gain.value=0.0;
-  s.connect(fl).connect(rollGain).connect(AC.destination);
+  s.connect(rollFilter).connect(rollGain).connect(MASTER);
   s.start();rollNode=s;
 }
-function stopRoll(){if(rollNode){try{rollNode.stop();}catch(e){}rollNode=null;rollGain=null;}}
+function stopRoll(){if(rollNode){try{rollNode.stop();}catch(e){}rollNode=null;rollGain=null;rollFilter=null;}}
 
 /* ===== screens ===== */
 const SCREENS=['scrTitle','scrLevels','scrPause','scrClear','scrShop'];
 function showScreen(id){
   for(const s of SCREENS)document.getElementById(s).classList.toggle('hidden',s!==id);
+}
+function hideGameHUD(){
+  document.getElementById('hud').classList.add('hidden');
+  document.getElementById('flow').classList.add('hidden');
+  setVig(0);
 }
 function buildLevels(){
   const grid=document.getElementById('lvgrid');grid.innerHTML='';
@@ -861,7 +1229,7 @@ function buildLevels(){
   }
   document.getElementById('totalCoins').textContent=save.coins;
 }
-function toLevels(){buildLevels();showScreen('scrLevels');document.getElementById('hud').classList.add('hidden');G.mode='menu';stopRoll();}
+function toLevels(){buildLevels();showScreen('scrLevels');hideGameHUD();G.mode='menu';stopRoll();}
 
 let shopTab='color';
 function shapePreviewDataURL(shapeId,pal){
@@ -939,7 +1307,7 @@ function buildShop(){
     grid.appendChild(card);
   }
 }
-function toShop(){buildShop();showScreen('scrShop');document.getElementById('hud').classList.add('hidden');G.mode='menu';stopRoll();}
+function toShop(){buildShop();showScreen('scrShop');hideGameHUD();G.mode='menu';stopRoll();}
 
 document.getElementById('btnStart').onclick=()=>{audio();sfx('tap');toLevels();};
 document.getElementById('btnBackTitle').onclick=()=>{sfx('tap');showScreen('scrTitle');};
@@ -947,64 +1315,107 @@ document.getElementById('btnShop').onclick=()=>{sfx('tap');shopTab='color';toSho
 document.getElementById('tabColor').onclick=()=>{sfx('tap');shopTab='color';buildShop();};
 document.getElementById('tabShape').onclick=()=>{sfx('tap');shopTab='shape';buildShop();};
 document.getElementById('btnShopBack').onclick=()=>{sfx('tap');toLevels();};
-document.getElementById('pauseBtn').onclick=()=>{if(G.mode!=='play')return;sfx('tap');G.mode='pause';stopRoll();showScreen('scrPause');};
-document.getElementById('btnResume').onclick=()=>{sfx('tap');showScreen(null);G.mode='play';startRoll();};
+document.getElementById('pauseBtn').onclick=()=>{if(G.mode!=='play')return;sfx('tap');pauseGame();};
+document.getElementById('muteBtn').onclick=e=>{e.stopPropagation();setMute(!save.mute);if(!save.mute)sfx('tap');};
+document.getElementById('btnResume').onclick=()=>{sfx('tap');resumeGame();};
 document.getElementById('btnRetry').onclick=()=>{sfx('tap');startLevel(G.lvNum);};
 document.getElementById('btnQuit').onclick=()=>{sfx('tap');toLevels();};
 document.getElementById('btnAgain').onclick=()=>{sfx('tap');startLevel(G.lvNum);};
 document.getElementById('btnNext').onclick=()=>{sfx('tap');startLevel(Math.min(10,G.lvNum+1));};
 document.getElementById('btnClearQuit').onclick=()=>{sfx('tap');toLevels();};
 
-/* ===== input ===== */
-let dragActive=false,lastPX=0,lastPY=0;
-const XMAX=1.75, SENS=4.6; // full-screen swipe ≈ full track width
-const SPD_MIN=0.55, SPD_MAX=1.8, SPD_SENS=1.6; // vertical drag speed range
+/* ===== input =====
+   Horizontal drag steers. A quick upward flick (or a tap) jumps, a downward flick
+   in mid-air slams. Flicks are detected from pointer *velocity*, not displacement,
+   so a slow diagonal steer never fires one by accident. */
+const SENS=4.6;                       // full-screen swipe ≈ full track width
+const FLICK_UP=-950, FLICK_DOWN=1000; // px/sec
+const GESTURE_CD=170;                 // ms between gestures in one continuous drag
+let pid=null,dragActive=false,lastPX=0,lastPY=0,lastT=0,vyPx=0;
+let startT=0,moved=0,lastGesture=0;
 function nearestLane(x){let best=0,bd=99;for(let l=0;l<3;l++){const d=Math.abs(x-LANES[l]);if(d<bd){bd=d;best=l;}}return best;}
 addEventListener('pointerdown',e=>{
   if(G.mode!=='play')return;
-  dragActive=true;lastPX=e.clientX;lastPY=e.clientY;tip(false);
+  // Only the first finger drives the ball. The old code let any pointerdown
+  // overwrite lastPX, so a second touch made the next move event teleport the ball.
+  if(pid!==null)return;
+  pid=e.pointerId;dragActive=true;
+  lastPX=e.clientX;lastPY=e.clientY;
+  lastT=startT=performance.now();
+  moved=0;vyPx=0;
+  tip(false);
 });
 addEventListener('pointermove',e=>{
-  if(!dragActive||G.mode!=='play')return;
+  if(!dragActive||e.pointerId!==pid||G.mode!=='play')return;
+  const now=performance.now();
+  const dx=e.clientX-lastPX,dy=e.clientY-lastPY;
+  const dtms=Math.max(1,now-lastT);
   // finger right = screen right = world -x (camera faces +z)
-  G.tx=clamp(G.tx-(e.clientX-lastPX)/innerWidth*SENS,-XMAX,XMAX);
-  // finger up = accelerate, finger down = slow down (screen y grows downward)
-  G.spd=clamp(G.spd-(e.clientY-lastPY)/innerHeight*SPD_SENS,SPD_MIN,SPD_MAX);
-  lastPX=e.clientX;lastPY=e.clientY;
-  G.lane=nearestLane(G.tx);
+  G.tx=clamp(G.tx-dx/innerWidth*SENS,-XMAX,XMAX);
+  moved+=Math.abs(dx)+Math.abs(dy);
+  vyPx=lerp(vyPx,dy/dtms*1000,0.5);
+  lastPX=e.clientX;lastPY=e.clientY;lastT=now;
+  if(now-lastGesture>GESTURE_CD){
+    if(vyPx<FLICK_UP){lastGesture=now;vyPx=0;doJump();}
+    else if(vyPx>FLICK_DOWN&&!G.grounded){lastGesture=now;vyPx=0;doSlam();}
+  }
 });
-addEventListener('pointerup',()=>{
-  if(dragActive&&G.mode==='play'){G.lane=nearestLane(G.tx);G.tx=LANES[G.lane];} // soft magnet to lane center
-  dragActive=false;
+addEventListener('pointerup',e=>{
+  if(e.pointerId!==pid)return;
+  if(G.mode==='play'){
+    if(moved<16&&performance.now()-startT<260)doJump();     // tap
+    else G.tx=LANES[nearestLane(G.tx)];                     // soft magnet to lane centre
+  }
+  pid=null;dragActive=false;
 });
-addEventListener('pointercancel',()=>dragActive=false);
+addEventListener('pointercancel',e=>{if(e.pointerId===pid){pid=null;dragActive=false;}});
 addEventListener('keydown',e=>{
+  if(e.repeat)return;
+  if(e.key==='Escape'){if(G.mode==='play')pauseGame();else if(G.mode==='pause')resumeGame();return;}
   if(G.mode!=='play')return;
-  if(e.key==='ArrowLeft'){G.lane=clamp(nearestLane(G.tx)-1,0,2);G.tx=LANES[G.lane];}
-  if(e.key==='ArrowRight'){G.lane=clamp(nearestLane(G.tx)+1,0,2);G.tx=LANES[G.lane];}
-  if(e.key==='ArrowUp')G.spd=clamp(G.spd+0.15,SPD_MIN,SPD_MAX);
-  if(e.key==='ArrowDown')G.spd=clamp(G.spd-0.15,SPD_MIN,SPD_MAX);
+  const k=e.key;
+  if(k==='ArrowLeft'||k==='a'||k==='A')G.tx=LANES[clamp(nearestLane(G.tx)-1,0,2)];
+  else if(k==='ArrowRight'||k==='d'||k==='D')G.tx=LANES[clamp(nearestLane(G.tx)+1,0,2)];
+  else if(k===' '||k==='ArrowUp'||k==='w'||k==='W'){e.preventDefault();doJump();}
+  else if(k==='ArrowDown'||k==='s'||k==='S')doSlam();
+  else if(k==='r'||k==='R')startLevel(G.lvNum);
 });
-document.addEventListener('visibilitychange',()=>{
-  if(document.hidden&&G.mode==='play'){G.mode='pause';stopRoll();showScreen('scrPause');}
-});
+function pauseGame(){
+  if(G.mode!=='play')return;
+  G.mode='pause';stopRoll();pid=null;dragActive=false;showScreen('scrPause');
+}
+function resumeGame(){
+  if(G.mode!=='pause')return;
+  showScreen(null);G.mode='play';prev=performance.now();startRoll();
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseGame();});
+addEventListener('blur',pauseGame);
+/* A lost GL context used to leave a permanently black screen after the tab came
+   back on mobile. Swallow the loss and reload once the driver hands it back. */
+cvs.addEventListener('webglcontextlost',e=>{e.preventDefault();pauseGame();showFatal('GLがリセットされました。復帰を待っています…');});
+cvs.addEventListener('webglcontextrestored',()=>location.reload());
 
 /* ===== main loop ===== */
 let prev=performance.now();
 function loop(now){
   const dt=Math.min(0.033,(now-prev)/1000);prev=now;
   if(G.mode==='play'){
-    step(dt);
-    if(rollGain)rollGain.gain.value=G.grounded?0.055:0.0;
+    // hit-stop: freeze the simulation for a few frames on impact but keep drawing,
+    // so a crash lands with some weight instead of sliding past
+    if(G.freeze>0)G.freeze-=dt;
+    else step(dt);
+    if(rollGain){
+      const target=G.grounded?(0.045+G.flow*0.05):0;
+      rollGain.gain.value+=(target-rollGain.gain.value)*0.25;
+      if(rollFilter)rollFilter.frequency.value=240+G.flow*520+(G.boostT>0?420:0);
+    }
+    if(G.boostT>0)updateFlowHUD();
   }
-  if(G.mode==='play'||G.mode==='pause'||G.mode==='clear')render(now,dt);
-  else{
-    // idle backdrop behind menus
-    render(now,dt);
-  }
+  render(now,dt);   // the course also runs as an idle backdrop behind the menus
   requestAnimationFrame(loop);
 }
 window.G=G; // debug handle
+document.getElementById('muteBtn').textContent=save.mute?'🔇':'🔊';
 // demo course behind title
 G.lv=genLevel(1);G.z=DZ*6;G.y=R;
 requestAnimationFrame(loop);
