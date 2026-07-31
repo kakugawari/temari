@@ -94,7 +94,7 @@ button.ghost:active{transform:translateY(2px);}
 <div id="flash"></div>
 <div id="toast"></div>
 <div id="combo"></div>
-<div id="tip">SLIDE to steer &nbsp;/&nbsp; TAP to jump &nbsp;/&nbsp; SWIPE DOWN to slam</div>
+<div id="tip">SLIDE steer &nbsp;·&nbsp; TAP jump &nbsp;·&nbsp; FLICK &uarr; speed &nbsp;·&nbsp; FLICK &darr; slam</div>
 
 <div id="scrTitle" class="screen">
   <img id="temariImg" class="temari-img" alt="てまり">
@@ -642,6 +642,9 @@ const XMAX=1.75;
 const MAGNET=1.2;            // coin attraction radius
 const FLOW_MAX=26;           // chain length that maxes out the speed bonus
 const BOOST_TIME=3.0;
+const PUSH_GAIN=0.55;        // speed surge added per upward flick
+const PUSH_DECAY=0.3;        // ...bleeding off per second, so holding speed stays an active choice
+const PUSH_SPEED=0.30;       // a full push is +30% speed
 
 const G={
   mode:'title', lvNum:1, lv:null,
@@ -649,7 +652,7 @@ const G={
   lean:0, sq:0,                       // banking angle, squash&stretch
   grounded:true, coyote:0, jbuf:0, airJumps:1, slamming:false,
   inv:0, misses:0, got:0,
-  chain:0, bestChain:0, bm:0, boostT:0, flow:0,
+  chain:0, bestChain:0, bm:0, boostT:0, flow:0, push:0,
   freeze:0,                           // hit-stop
   cpZ:0, t:0, shake:0, clearAt:0
 };
@@ -665,7 +668,7 @@ function startLevel(n){
   G.x=0;G.tx=0;G.vx=0;G.y=R;G.z=DZ*2;G.vy=0;G.roll=0;G.lean=0;G.sq=0;
   G.grounded=true;G.coyote=0;G.jbuf=0;G.airJumps=1;G.slamming=false;
   G.inv=0;G.misses=0;G.got=0;G.freeze=0;
-  G.chain=0;G.bestChain=0;G.bm=0;G.boostT=0;G.flow=0;
+  G.chain=0;G.bestChain=0;G.bm=0;G.boostT=0;G.flow=0;G.push=0;
   G.cpZ=G.z;G.t=0;G.shake=0;
   trail.length=0;rings.length=0;bits.length=0;
   camX=0;camY=3;camZ=G.z-6.4;camFov=FOV_BASE;camRoll=0;
@@ -706,14 +709,30 @@ function addChain(v){
   if(G.chain>G.bestChain)G.bestChain=G.chain;
   updateFlowHUD();
 }
+/* Going fast has to pay for itself, or accelerating is pure added risk and nobody
+   ever does it. The meter fills faster the harder you are pushing, so speed buys
+   boost — the mirror of the old scheme, where slowing down was free safety. */
 function addBoost(v){
   if(G.boostT>0)return;                 // already boosting — don't stack
-  G.bm=clamp(G.bm+v,0,1);
-  if(G.bm>=1){
-    G.bm=0;G.boostT=BOOST_TIME;G.shake=0.3;
-    sfx('boost');buzz([14,26,14,26]);combo('BOOST!!');setVig(1);
-  }
+  const was=G.bm;
+  G.bm=clamp(G.bm+v*(1+(G.push+G.flow)*0.5),0,1);
+  if(was<1&&G.bm>=1){sfx('ready');combo('BOOST READY');}
   updateFlowHUD();
+}
+function fireBoost(){
+  G.bm=0;G.boostT=BOOST_TIME;G.shake=0.3;
+  ring(G.x,G.y,G.z,COL.green);
+  sfx('boost');buzz([14,26,14,26]);combo('BOOST!!');setVig(1);
+  updateFlowHUD();
+}
+/* Flick up to accelerate. Once the meter is full the same gesture spends it on a
+   full boost, so one input covers "a bit faster" and "everything you've banked". */
+function doPush(){
+  if(G.mode!=='play'||G.boostT>0)return;
+  if(G.bm>=1){fireBoost();return;}
+  G.push=Math.min(1,G.push+PUSH_GAIN);
+  if(G.shake<0.12)G.shake=0.12;
+  sfx('push');
 }
 
 /* ===== physics ===== */
@@ -753,7 +772,7 @@ function obClear(ob,st){
 function crash(){
   if(G.inv>0||G.boostT>0)return;
   G.misses++;
-  G.chain=0;G.bm=Math.max(0,G.bm-0.4);
+  G.chain=0;G.bm=Math.max(0,G.bm-0.4);G.push=0;
   G.shake=0.7;G.freeze=0.09;G.inv=1.15;
   G.vx=-G.vx*0.55;G.sq=-0.4;G.slamming=false;
   sfx('hit');buzz([18,42,18]);flash();
@@ -766,7 +785,7 @@ function crash(){
    falling through the void until they expired. */
 function pitFall(){
   G.misses++;
-  G.chain=0;G.bm=0;G.shake=0.5;
+  G.chain=0;G.bm=0;G.push=0;G.shake=0.5;
   sfx('fall');buzz(30);
   G.x=0;G.tx=0;G.vx=0;G.y=R;G.z=Math.max(G.cpZ,DZ*2);G.vy=0;
   G.grounded=true;G.slamming=false;G.airJumps=1;G.inv=1.2;G.sq=0;
@@ -825,13 +844,14 @@ function step(dt){
   if(G.shake>0)G.shake-=dt;
   if(G.coyote>0)G.coyote-=dt;
   if(G.jbuf>0)G.jbuf-=dt;
-  if(G.boostT>0){G.boostT-=dt;if(G.boostT<=0){G.boostT=0;setVig(0);}}
+  if(G.boostT>0){G.boostT-=dt;if(G.boostT<=0){G.boostT=0;setVig(0);updateFlowHUD();}}
 
   /* Speed is earned, not chosen. Chaining pickups and near-misses raises `flow`,
      which raises the speed, which raises the risk. The old scheme let you simply
      hold a slow speed forever, so the safest play was also the dullest one. */
   G.flow=clamp(G.chain/FLOW_MAX,0,1);
-  const sp=G.lv.speed*(1+G.flow*0.34+(G.boostT>0?0.5:0));
+  if(G.push>0)G.push=Math.max(0,G.push-PUSH_DECAY*dt);   // a surge, not a setting
+  const sp=G.lv.speed*(1+G.flow*0.34+G.push*PUSH_SPEED+(G.boostT>0?0.5:0));
   G.sp=sp;
   G.z+=sp*dt;
   G.roll+=sp*dt/R;
@@ -941,11 +961,13 @@ function clearLevel(){
 function updateHUD(){document.getElementById('coinLabel').textContent=G.got+'/'+(G.lv?G.lv.total:0);}
 function updateFlowHUD(){
   const ch=document.getElementById('chain'),bar=document.getElementById('bmBar');
-  ch.textContent=G.chain>2?('CHAIN '+G.chain):'';
-  ch.style.opacity=G.chain>2?1:0;
+  const ready=G.bm>=1&&G.boostT<=0;
+  ch.textContent=ready?'FLICK UP →':(G.chain>2?('CHAIN '+G.chain):'');
+  ch.style.opacity=(ready||G.chain>2)?1:0;
+  ch.style.color=ready?'var(--mag)':'var(--lime)';
   const pct=G.boostT>0?(G.boostT/BOOST_TIME):G.bm;
   document.getElementById('bmFill').style.width=(pct*100)+'%';
-  bar.classList.toggle('full',G.boostT>0);
+  bar.classList.toggle('full',G.boostT>0||ready);
 }
 function updateProg(){
   const p=clamp(G.z/((G.lv.len-1)*DZ)*100,0,100);
@@ -1178,6 +1200,12 @@ function sfx(name){
   }else if(name==='near'){
     noise(0.16,0.006,0.16,2200,3.5,t);
     tone('sine',1320,1760,0.05,0.006,0.12,t);
+  }else if(name==='push'){
+    noise(0.13,0.015,0.2,900,1.6,t);
+    tone('sine',260,520,0.07,0.012,0.16,t);
+  }else if(name==='ready'){
+    tone('triangle',880,0,0.09,0.005,0.16,t);
+    tone('triangle',1174.66,0,0.08,0.005,0.22,t+0.07);
   }else if(name==='boost'){
     [0,2,4].forEach((i,k)=>tone('square',PENTA[i],PENTA[i]*2,0.1,0.006,0.28,t+k*0.05));
     noise(0.22,0.02,0.55,1200,0.9,t);
@@ -1325,24 +1353,33 @@ document.getElementById('btnNext').onclick=()=>{sfx('tap');startLevel(Math.min(1
 document.getElementById('btnClearQuit').onclick=()=>{sfx('tap');toLevels();};
 
 /* ===== input =====
-   Horizontal drag steers. A quick upward flick (or a tap) jumps, a downward flick
-   in mid-air slams. Flicks are detected from pointer *velocity*, not displacement,
-   so a slow diagonal steer never fires one by accident. */
+   Horizontal drag steers. Tap to jump, flick up to accelerate, flick down in
+   mid-air to slam. Flicks are detected from pointer *velocity*, not displacement,
+   so a slow diagonal steer never fires one by accident.
+   Jump is tap-only, so a second finger tapping while the first keeps steering also
+   jumps — otherwise you would have to let go of the steering to get off the ground. */
 const SENS=4.6;                       // full-screen swipe ≈ full track width
-const FLICK_UP=-950, FLICK_DOWN=1000; // px/sec
+/* Accelerating is a repeated action — you flick roughly every couple of seconds to
+   hold top speed — so the gesture has to be comfortable rather than sharp. The
+   threshold is low, and a dominance test keeps a fast diagonal steer from counting
+   as a vertical flick. */
+// The smoothing below only reaches ~87% of the true pointer speed over a flick, so
+// these sit under the speed actually intended: -600 here trips at roughly 700 px/s.
+const FLICK_UP=-600, FLICK_DOWN=800;  // px/sec
+const FLICK_DOM=1.2;                  // vertical speed must beat horizontal by this much
 const GESTURE_CD=170;                 // ms between gestures in one continuous drag
-let pid=null,dragActive=false,lastPX=0,lastPY=0,lastT=0,vyPx=0;
+let pid=null,dragActive=false,lastPX=0,lastPY=0,lastT=0,vyPx=0,vxPx=0;
 let startT=0,moved=0,lastGesture=0;
 function nearestLane(x){let best=0,bd=99;for(let l=0;l<3;l++){const d=Math.abs(x-LANES[l]);if(d<bd){bd=d;best=l;}}return best;}
 addEventListener('pointerdown',e=>{
   if(G.mode!=='play')return;
-  // Only the first finger drives the ball. The old code let any pointerdown
-  // overwrite lastPX, so a second touch made the next move event teleport the ball.
-  if(pid!==null)return;
+  // Only the first finger drives the ball — a second touch used to overwrite lastPX
+  // and teleport it. That spare finger is now the jump button.
+  if(pid!==null){doJump();return;}
   pid=e.pointerId;dragActive=true;
   lastPX=e.clientX;lastPY=e.clientY;
   lastT=startT=performance.now();
-  moved=0;vyPx=0;
+  moved=0;vyPx=0;vxPx=0;
   tip(false);
 });
 addEventListener('pointermove',e=>{
@@ -1354,9 +1391,10 @@ addEventListener('pointermove',e=>{
   G.tx=clamp(G.tx-dx/innerWidth*SENS,-XMAX,XMAX);
   moved+=Math.abs(dx)+Math.abs(dy);
   vyPx=lerp(vyPx,dy/dtms*1000,0.5);
+  vxPx=lerp(vxPx,dx/dtms*1000,0.5);
   lastPX=e.clientX;lastPY=e.clientY;lastT=now;
-  if(now-lastGesture>GESTURE_CD){
-    if(vyPx<FLICK_UP){lastGesture=now;vyPx=0;doJump();}
+  if(now-lastGesture>GESTURE_CD&&Math.abs(vyPx)>Math.abs(vxPx)*FLICK_DOM){
+    if(vyPx<FLICK_UP){lastGesture=now;vyPx=0;doPush();}
     else if(vyPx>FLICK_DOWN&&!G.grounded){lastGesture=now;vyPx=0;doSlam();}
   }
 });
@@ -1376,7 +1414,8 @@ addEventListener('keydown',e=>{
   const k=e.key;
   if(k==='ArrowLeft'||k==='a'||k==='A')G.tx=LANES[clamp(nearestLane(G.tx)-1,0,2)];
   else if(k==='ArrowRight'||k==='d'||k==='D')G.tx=LANES[clamp(nearestLane(G.tx)+1,0,2)];
-  else if(k===' '||k==='ArrowUp'||k==='w'||k==='W'){e.preventDefault();doJump();}
+  else if(k===' '){e.preventDefault();doJump();}                  // tap
+  else if(k==='ArrowUp'||k==='w'||k==='W'){e.preventDefault();doPush();}   // flick up
   else if(k==='ArrowDown'||k==='s'||k==='S')doSlam();
   else if(k==='r'||k==='R')startLevel(G.lvNum);
 });
